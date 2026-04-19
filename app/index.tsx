@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-
+import { SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import { globalStyles } from '@/styles/global';
+import FirstWelcomeScreen from './firstWelcomeScreen';
 
 const App = () => {
   // Kullanıcı adı ve giriş durumunu tuttuğumuz stateler
@@ -25,24 +18,11 @@ const App = () => {
   // Kullanıcı giriş YAPMADIYSA Giriş Ekranı gösterilir
   if (!isLoggedIn) {
     return (
-      <SafeAreaView style={globalStyles.container}>
-        <View style={globalStyles.loginContainer}>
-          <Text style={globalStyles.title}>Word Crush'a</Text>
-          <Text style={globalStyles.subtitle}>Hoş Geldiniz!</Text>
-
-          <TextInput
-            style={globalStyles.input}
-            placeholder="Kullanıcı Adınızı Girin"
-            placeholderTextColor="#999"
-            value={username}
-            onChangeText={setUsername}
-          />
-
-          <TouchableOpacity style={globalStyles.primaryButton} onPress={handleLogin}>
-            <Text style={globalStyles.buttonText}>Oyuna Başla</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <FirstWelcomeScreen
+        username={username}
+        onUsernameChange={setUsername}
+        onLogin={handleLogin}
+      />
     );
   }
 
@@ -76,7 +56,6 @@ const App = () => {
   );
 };
 
-// Tasarım (Style) Ayarları
 
 
 export default App;
