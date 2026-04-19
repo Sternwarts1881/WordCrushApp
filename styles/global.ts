@@ -60,6 +60,8 @@ export const globalStyles = StyleSheet.create({
   header: {
     padding: 20,
     flexDirection: 'row',
+    backgroundColor: colors.background,
+    color: 'black'
   },
   usernameText: {
     fontSize: 18,
