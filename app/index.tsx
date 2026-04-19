@@ -4,12 +4,12 @@ import { globalStyles } from '@/styles/global';
 import FirstWelcomeScreen from './firstWelcomeScreen';
 import { Link, useRouter } from 'expo-router';
 import NameChange from './nameChange';
-import GameScreen from './gameScreen';
+import GameScreen from './(GameScreen)/gameScreen';
 import Scoreboard from './scoreboard';
 import Marketplace from './marketplace';
 
 
-const App = () => {
+const HomeScreen = () => {
   // Kullanıcı adı ve giriş durumunu tuttuğumuz stateler
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -67,7 +67,7 @@ const App = () => {
         {/* Ana Menü Butonları */}
         <TouchableOpacity 
           style={globalStyles.menuButton}
-          onPress={() => router.push('/gameScreen')} 
+          onPress={() => router.push('/(GameScreen)/gameScreen')} 
         >
           <Text style={globalStyles.menuButtonText}>Yeni Oyun</Text>
         </TouchableOpacity>
@@ -92,4 +92,4 @@ const App = () => {
 
 
 
-export default App;
+export default HomeScreen;
