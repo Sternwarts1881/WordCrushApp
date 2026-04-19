@@ -7,7 +7,6 @@ const Scoreboard = () => {
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.menuContainer}>
         <Text style={globalStyles.mainTitle}>Skor Tablosu</Text>
-        {/* Skor tablosu içeriğini buraya ekle */}
       </View>
     </SafeAreaView>
   );

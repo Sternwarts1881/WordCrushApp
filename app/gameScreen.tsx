@@ -7,7 +7,7 @@ const GameScreen=()=>{
     <SafeAreaView style={globalStyles.container}>
 
     <View style = {globalStyles.loginContainer}>
-        <Text style={{textAlign:'center'}} > Oyun ekrani</Text>
+        <Text style={globalStyles.mainTitle} > Oyun ekrani</Text>
     </View>
     </SafeAreaView>
     );

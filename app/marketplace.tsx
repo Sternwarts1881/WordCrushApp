@@ -7,7 +7,6 @@ const Marketplace = () => {
     <SafeAreaView style={globalStyles.container}>
       <View style={globalStyles.menuContainer}>
         <Text style={globalStyles.mainTitle}>Market</Text>
-        {/* Market içeriğini buraya ekle */}
       </View>
     </SafeAreaView>
   );
