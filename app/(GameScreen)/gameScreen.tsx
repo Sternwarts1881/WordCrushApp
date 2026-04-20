@@ -6,6 +6,7 @@ import TurnAmountQuery from './turnAmountScreen';
 import { generateInitialGrid } from '@/utils/gridGenerator';
 
 const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 interface CellPosition {
     row: number;
