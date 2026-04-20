@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import GridSizeQuery from './gridSizeScreen';
 import TurnAmountQuery from './turnAmountScreen';
 
@@ -30,37 +31,57 @@ const GameScreen = () => {
         }
     }, [gridSize, turnAmount]);
 
-  
-    const handleCellPress = (row: number, col: number) => {
+    const cellSize = (screenWidth - 40) / gridSize;
+
+    const onGestureEvent = (event: any) => {
+        const { x, y } = event.nativeEvent;
+        const relativeX = x;
+        const relativeY = y;
+
+        if (relativeX < 0 || relativeY < 0 || relativeX >= gridSize * cellSize || relativeY >= gridSize * cellSize) {
+            return;
+        }
+
+        const col = Math.floor(relativeX / cellSize);
+        const row = Math.floor(relativeY / cellSize);
+
+        if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return;
+
         const isAlreadySelected = selectedCells.some(cell => cell.row === row && cell.col === col);
-        
-        if (isAlreadySelected) {
-          
-            if (selectedCells[selectedCells.length - 1].row === row && selectedCells[selectedCells.length - 1].col === col) {
-                setSelectedCells(prev => prev.slice(0, -1));
-            }
-            return;
-        }
 
-  
-        if (selectedCells.length === 0) {
-            setSelectedCells([{ row, col }]);
-            return;
-        }
+        if (isAlreadySelected) return;
 
-     
+        if (selectedCells.length === 0) return; // Wait for start
+
         const lastCell = selectedCells[selectedCells.length - 1];
         const rowDiff = Math.abs(lastCell.row - row);
         const colDiff = Math.abs(lastCell.col - col);
 
-        if (rowDiff <= 1 && colDiff <= 1) {
+        if (rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0)) {
             setSelectedCells(prev => [...prev, { row, col }]);
-        } else {
-            Alert.alert("Geçersiz Hamle", "Sadece komşu harfleri seçebilirsiniz!");
         }
     };
 
-   
+    const onHandlerStateChange = (event: any) => {
+        if (event.nativeEvent.state === State.BEGAN) {
+            const { x, y } = event.nativeEvent;
+            const relativeX = x;
+            const relativeY = y;
+
+            if (relativeX < 0 || relativeY < 0 || relativeX >= gridSize * cellSize || relativeY >= gridSize * cellSize) {
+                return;
+            }
+
+            const col = Math.floor(relativeX / cellSize);
+            const row = Math.floor(relativeY / cellSize);
+
+            if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+                setSelectedCells([{ row, col }]);
+            }
+        }
+    };
+
+  
     const handleSubmitWord = () => {
         if (selectedCells.length < 3) {
             Alert.alert("Geçersiz", "Kelime en az 3 harfli olmalıdır!");
@@ -95,8 +116,6 @@ const GameScreen = () => {
         );
     }
 
-    const cellSize = (screenWidth - 40) / gridSize;
-
     return (
         <SafeAreaView style={styles.gameContainer}>
             {/* Üst Bilgi Paneli */}
@@ -106,32 +125,37 @@ const GameScreen = () => {
             </View>
 
             {/* Grid Alanı */}
-            <View style={styles.gridBoard}>
-                {grid.map((row, rowIndex) => (
-                    <View key={`row-${rowIndex}`} style={styles.row}>
-                        {row.map((letter, colIndex) => {
-                            const isSelected = selectedCells.some(cell => cell.row === rowIndex && cell.col === colIndex);
+            <GestureHandlerRootView style={styles.gridBoard}>
+                <PanGestureHandler
+                    onGestureEvent={onGestureEvent}
+                    onHandlerStateChange={onHandlerStateChange}
+                >
+                    <View style={styles.gridContainer}>
+                        {grid.map((row, rowIndex) => (
+                            <View key={`row-${rowIndex}`} style={styles.row}>
+                                {row.map((letter, colIndex) => {
+                                    const isSelected = selectedCells.some(cell => cell.row === rowIndex && cell.col === colIndex);
 
-                            return (
-                                <TouchableOpacity
-                                    key={`cell-${rowIndex}-${colIndex}`}
-                                    style={[
-                                        styles.cell,
-                                        { width: cellSize - 4, height: cellSize - 4 },
-                                        isSelected && styles.cellSelected
-                                    ]}
-                                    onPress={() => handleCellPress(rowIndex, colIndex)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
-                                        {letter}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
+                                    return (
+                                        <View
+                                            key={`cell-${rowIndex}-${colIndex}`}
+                                            style={[
+                                                styles.cell,
+                                                { width: cellSize - 4, height: cellSize - 4 },
+                                                isSelected && styles.cellSelected
+                                            ]}
+                                        >
+                                            <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
+                                                {letter}
+                                            </Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        ))}
                     </View>
-                ))}
-            </View>
+                </PanGestureHandler>
+            </GestureHandlerRootView>
 
             
             <View style={styles.bottomPanel}>
@@ -167,6 +191,10 @@ const styles = StyleSheet.create({
     },
     gridBoard: {
         padding: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gridContainer: {
         justifyContent: 'center',
         alignItems: 'center',
     },
