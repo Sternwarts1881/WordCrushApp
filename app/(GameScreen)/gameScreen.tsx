@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import GridSizeQuery from './gridSizeScreen';
 import TurnAmountQuery from './turnAmountScreen';
 
 import { generateInitialGrid } from '@/utils/gridGenerator';
+import { WordLibrary } from '@/storage/wordLibraryStorage';
+import { PointCalculator } from '@/utils/pointCalculator';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -23,6 +25,7 @@ const GameScreen = () => {
     const [grid, setGrid] = useState<string[][]>([]);
     const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
     const [score, setScore] = useState(0);
+    const [availableWords, setAvailableWords] = useState(0);
 
    
     useEffect(() => {
@@ -78,23 +81,27 @@ const GameScreen = () => {
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
                 setSelectedCells([{ row, col }]);
             }
-        }
-    };
+        } else if (event.nativeEvent.state === State.END) {
 
-  
-    const handleSubmitWord = () => {
-        if (selectedCells.length < 3) {
-            Alert.alert("Geçersiz", "Kelime en az 3 harfli olmalıdır!");
+            if (selectedCells.length < 3) {
+                Alert.alert("Geçersiz", "Kelime en az 3 harfli olmalıdır!");
+                setSelectedCells([]);
+                return;
+            }
+            
+            const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
+            const wordExists : boolean = WordLibrary.isValidWord(word);
+            if (wordExists){
+                Alert.alert("Kelime Oluşturuldu", `Oluşturduğunuz kelime: ${word}`);
+                const wordPoint = PointCalculator.calculateScore(word);
+                setScore(score+wordPoint)
+            }else{
+                Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
+            }
+
+            setTurnAmount(prev => prev - 1);
             setSelectedCells([]);
-            return;
         }
-        
-        const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
-        Alert.alert("Kelime Oluşturuldu", `Oluşturduğunuz kelime: ${word}`);
-        
-       
-        setTurnAmount(prev => prev - 1);
-        setSelectedCells([]);
     };
 
 
@@ -157,14 +164,12 @@ const GameScreen = () => {
                 </PanGestureHandler>
             </GestureHandlerRootView>
 
-            
+            {/* Alt Panel */}
             <View style={styles.bottomPanel}>
+                <Text style={styles.panelText}>Seçilebilir kelimeler: {availableWords}</Text>
                 <Text style={styles.currentWordText}>
                     {selectedCells.map(cell => grid[cell.row][cell.col]).join('')}
                 </Text>
-                <TouchableOpacity style={styles.submitButton} onPress={handleSubmitWord}>
-                    <Text style={styles.submitButtonText}>Kelimeyi Dene</Text>
-                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
@@ -241,13 +246,6 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: -1, height: 1 },
         textShadowRadius: 10
-    },
-    submitButton: {
-        backgroundColor: '#2196F3',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
-        borderRadius: 25,
-        elevation: 5,
     },
     submitButtonText: {
         color: '#FFF',
