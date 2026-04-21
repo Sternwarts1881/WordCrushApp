@@ -26,6 +26,9 @@ const GameScreen = () => {
     const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
     const [score, setScore] = useState(0);
     const [availableWords, setAvailableWords] = useState(0);
+    const [poppedAmount, setPoppedAmount] = useState(0);
+    const [longestWord, setLongestWord] = useState('');
+
 
    
     useEffect(() => {
@@ -94,7 +97,9 @@ const GameScreen = () => {
             if (wordExists){
                 Alert.alert("Kelime Oluşturuldu", `Oluşturduğunuz kelime: ${word}`);
                 const wordPoint = PointCalculator.calculateScore(word);
-                setScore(score+wordPoint)
+                setScore(score+wordPoint);
+                setPoppedAmount(poppedAmount+1);
+                if (word.length>longestWord.length) setLongestWord(word);
             }else{
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
             }
