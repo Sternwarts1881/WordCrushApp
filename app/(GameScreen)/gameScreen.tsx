@@ -1,16 +1,19 @@
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
+
+import GameOverScreen from './gameOverScreenn';
 import GridSizeQuery from './gridSizeScreen';
 import TurnAmountQuery from './turnAmountScreen';
 
-import { generateInitialGrid } from '@/utils/gridGenerator';
+import { ScoreboardStorage } from '@/storage/scoreboardStorage';
 import { WordLibrary } from '@/storage/wordLibraryStorage';
-import { PointCalculator } from '@/utils/pointCalculator';
 import { ComboChecker } from '@/utils/comboCheck';
+import { generateInitialGrid } from '@/utils/gridGenerator';
+import { PointCalculator } from '@/utils/pointCalculator';
 
 const screenWidth = Dimensions.get('window').width;
-const screenHeight = Dimensions.get('window').height;
 
 interface CellPosition {
     row: number;
@@ -18,53 +21,104 @@ interface CellPosition {
 }
 
 const GameScreen = () => {
+    const router = useRouter();
 
+    // Kurulum Stateleri
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
 
-
+    // Oyun İçi Stateler
     const [grid, setGrid] = useState<string[][]>([]);
     const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
     const [score, setScore] = useState(0);
-    const [availableWords, setAvailableWords] = useState(0);
     const [poppedAmount, setPoppedAmount] = useState(0);
     const [longestWord, setLongestWord] = useState('');
+    
+    const [timeElapsed, setTimeElapsed] = useState(0);
+    const [isGameOver, setIsGameOver] = useState(false);
+    const [isGameActive, setIsGameActive] = useState(false);
 
-
-
+    // 1. OYUN KURULUMU
     useEffect(() => {
         if (gridSize > 0 && turnAmount > 0 && grid.length === 0) {
             setGrid(generateInitialGrid(gridSize));
+            setIsGameActive(true);
         }
     }, [gridSize, turnAmount]);
 
+    // 2. ZAMANLAYICI (TIMER)
+    useEffect(() => {
+        let timer: ReturnType<typeof setInterval>;
+        if (isGameActive && !isGameOver) {
+            timer = setInterval(() => {
+                setTimeElapsed(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [isGameActive, isGameOver]);
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // 3. FİZİKSEL GERİ TUŞU YAKALAYICI
+    useEffect(() => {
+        const backAction = () => {
+            if (isGameActive && !isGameOver) { 
+                Alert.alert("Çıkış", "Oyundan çıkmak istediğinize emin misiniz?", [
+                    { text: "İptal", style: "cancel" },
+                    { text: "Evet", onPress: () => router.replace('/') } 
+                ]);
+                return true; 
+            }
+            return false;
+        };
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+        return () => backHandler.remove();
+    }, [isGameActive, isGameOver]);
+
+    // 4. OYUN BİTİŞ KONTROLÜ VE SKOR KAYDI
+    useEffect(() => {
+        if (isGameActive && turnAmount === 0 && !isGameOver) {
+            setIsGameOver(true);
+            setIsGameActive(false); 
+            
+            const saveGameData = async () => {
+                const today = new Date();
+                const dateString = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+                
+                const gameRecord = {
+                    id: Math.floor(Math.random() * 10000), 
+                    date: dateString,
+                    gridSize: `${gridSize}x${gridSize}`,
+                    score: score,
+                    wordsFound: poppedAmount,
+                    longestWord: longestWord,
+                    duration: timeElapsed
+                };
+                await ScoreboardStorage.saveGame(gameRecord);
+            };
+            saveGameData();
+        }
+    }, [turnAmount, isGameActive, isGameOver]);
+
+    // SÜRÜKLE BIRAK MANTIĞI
     const cellSize = (screenWidth - 40) / gridSize;
 
     const onGestureEvent = (event: any) => {
         const { x, y } = event.nativeEvent;
-        const relativeX = x;
-        const relativeY = y;
-
-        if (relativeX < 0 || relativeY < 0 || relativeX >= gridSize * cellSize || relativeY >= gridSize * cellSize) {
-            return;
-        }
-
-        const col = Math.floor(relativeX / cellSize);
-        const row = Math.floor(relativeY / cellSize);
-
+        if (x < 0 || y < 0 || x >= gridSize * cellSize || y >= gridSize * cellSize) return;
+        const col = Math.floor(x / cellSize);
+        const row = Math.floor(y / cellSize);
         if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return;
 
         const isAlreadySelected = selectedCells.some(cell => cell.row === row && cell.col === col);
-
-        if (isAlreadySelected) return;
-
-        if (selectedCells.length === 0) return; // Wait for start
+        if (isAlreadySelected || selectedCells.length === 0) return;
 
         const lastCell = selectedCells[selectedCells.length - 1];
-        const rowDiff = Math.abs(lastCell.row - row);
-        const colDiff = Math.abs(lastCell.col - col);
-
-        if (rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0)) {
+        if (Math.abs(lastCell.row - row) <= 1 && Math.abs(lastCell.col - col) <= 1) {
             setSelectedCells(prev => [...prev, { row, col }]);
         }
     };
@@ -72,124 +126,82 @@ const GameScreen = () => {
     const onHandlerStateChange = (event: any) => {
         if (event.nativeEvent.state === State.BEGAN) {
             const { x, y } = event.nativeEvent;
-            const relativeX = x;
-            const relativeY = y;
-
-            if (relativeX < 0 || relativeY < 0 || relativeX >= gridSize * cellSize || relativeY >= gridSize * cellSize) {
-                return;
-            }
-
-            const col = Math.floor(relativeX / cellSize);
-            const row = Math.floor(relativeY / cellSize);
-
+            const col = Math.floor(x / cellSize);
+            const row = Math.floor(y / cellSize);
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
                 setSelectedCells([{ row, col }]);
             }
         } else if (event.nativeEvent.state === State.END) {
-
             if (selectedCells.length < 3) {
-                Alert.alert("Geçersiz", "Kelime en az 3 harfli olmalıdır!");
+                Alert.alert("Geçersiz", "En az 3 harf!");
                 setSelectedCells([]);
                 return;
             }
-
-
             const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
-            const wordExists: boolean = WordLibrary.isValidWord(word);
-
-            if (wordExists) {
-                let totalPoint = 0; 
-                let alertMessage = `Oluşturduğunuz kelime: ${word}`; 
-
-
-                if (word.length > 3) {
-                    const comboCheckResult = ComboChecker.checkCombo(word);
-
-                    if (comboCheckResult.length > 1) {
-                        alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
-
-                        for (const subWord of comboCheckResult) {
-                            totalPoint += PointCalculator.calculateScore(subWord); 
-                        }
-                    } else {
-                        totalPoint = PointCalculator.calculateScore(word);
-                    }
+            if (WordLibrary.isValidWord(word)) {
+                let pts = 0;
+                const combo = ComboChecker.checkCombo(word);
+                if (combo.length > 1) {
+                    combo.forEach(w => pts += PointCalculator.calculateScore(w));
+                    Alert.alert("KOMBO!", `${combo.length} kelime bulundu!`);
                 } else {
-                    totalPoint = PointCalculator.calculateScore(word);
+                    pts = PointCalculator.calculateScore(word);
                 }
-
-
-                setScore(prev => prev + totalPoint);
-                setPoppedAmount(prev => prev + 1);
-
-                if (word.length > longestWord.length) {
-                    setLongestWord(word);
-                }
-
-                // 3. Ekrana Bildirim Çıkarma (Döngü dışında, tek seferlik)
-                Alert.alert("Kelime Oluşturuldu", alertMessage);
-
+                setScore(p => p + pts);
+                setPoppedAmount(p => p + 1);
+                if (word.length > longestWord.length) setLongestWord(word);
             } else {
-                Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
+                Alert.alert("Hata", "Sözlükte yok.");
             }
-
-            // 4. Tur ve Seçim Sıfırlama
-            setTurnAmount(prev => prev - 1);
+            setTurnAmount(p => p - 1);
             setSelectedCells([]);
         }
     };
 
+    // --- EKRAN SIRALAMASI (DÜZELTİLDİ) ---
 
-    if (gridSize == 0) {
+    // 1. Önce boyut seçilmeli
+    if (gridSize === 0) return <GridSizeQuery gridsize={gridSize} onSelectSize={setGridsize} />;
+    
+    // 2. KRİTİK NOKTA: Oyun bittiyse bitiş ekranını göster (Hamle kontrolünden önce!)
+    if (isGameOver) {
         return (
-            <GridSizeQuery
-                gridsize={gridSize}
-                onSelectSize={setGridsize}
+            <GameOverScreen 
+                score={score} 
+                wordsFound={poppedAmount} 
+                longestWord={longestWord} 
+                timeElapsed={timeElapsed} 
+                onReturn={() => router.replace('/')} 
             />
         );
     }
 
-    if (turnAmount == 0) {
-        return (
-            <TurnAmountQuery
-                turnamount={turnAmount}
-                onSelectSize={setTurnAmount}
-            />
-        );
-    }
+    // 3. Oyun bitmediyse ve hamle seçilmediyse hamle seçtir
+    if (turnAmount === 0) return <TurnAmountQuery turnamount={turnAmount} onSelectSize={setTurnAmount} />;
 
+    // 4. Hepsi tamamsa oyunu oynat
     return (
         <SafeAreaView style={styles.gameContainer}>
-            {/* Üst Bilgi Paneli */}
             <View style={styles.topPanel}>
-                <Text style={styles.panelText}>Puan: {score}</Text>
-                <Text style={styles.panelText}>Kalan Hamle: {turnAmount}</Text>
+                <View>
+                    <Text style={styles.panelText}>Puan: {score}</Text>
+                    <Text style={styles.panelText}>Kalan Hamle: {turnAmount}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.timerText}>⏱ {formatTime(timeElapsed)}</Text>
+                </View>
             </View>
 
-            {/* Grid Alanı */}
             <GestureHandlerRootView style={styles.gridBoard}>
-                <PanGestureHandler
-                    onGestureEvent={onGestureEvent}
-                    onHandlerStateChange={onHandlerStateChange}
-                >
+                <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
                     <View style={styles.gridContainer}>
-                        {grid.map((row, rowIndex) => (
-                            <View key={`row-${rowIndex}`} style={styles.row}>
-                                {row.map((letter, colIndex) => {
-                                    const isSelected = selectedCells.some(cell => cell.row === rowIndex && cell.col === colIndex);
-
+                        {grid.map((row, rI) => (
+                            <View key={rI} style={styles.row}>
+                                {row.map((letter, cI) => {
+                                    const sel = selectedCells.some(c => c.row === rI && c.col === cI);
                                     return (
-                                        <View
-                                            key={`cell-${rowIndex}-${colIndex}`}
-                                            style={[
-                                                styles.cell,
-                                                { width: cellSize - 4, height: cellSize - 4 },
-                                                isSelected && styles.cellSelected
-                                            ]}
-                                        >
-                                            <Text style={[styles.letterText, isSelected && styles.letterTextSelected]}>
-                                                {letter}
-                                            </Text>
+                                        <View key={cI} style={[styles.cell, { width: cellSize - 4, height: cellSize - 4 }, sel && styles.cellSelected]}>
+                                            <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter}</Text>
                                         </View>
                                     );
                                 })}
@@ -199,11 +211,9 @@ const GameScreen = () => {
                 </PanGestureHandler>
             </GestureHandlerRootView>
 
-            {/* Alt Panel */}
             <View style={styles.bottomPanel}>
-                <Text style={styles.panelText}>Seçilebilir kelimeler: {availableWords}</Text>
                 <Text style={styles.currentWordText}>
-                    {selectedCells.map(cell => grid[cell.row][cell.col]).join('')}
+                    {selectedCells.map(c => grid[c.row][c.col]).join('')}
                 </Text>
             </View>
         </SafeAreaView>
@@ -212,79 +222,18 @@ const GameScreen = () => {
 
 export default GameScreen;
 
-
 const styles = StyleSheet.create({
-    gameContainer: {
-        flex: 1,
-        backgroundColor: '#8BC34A',
-    },
-    topPanel: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 20,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    panelText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#FFF',
-    },
-    gridBoard: {
-        padding: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    gridContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    row: {
-        flexDirection: 'row',
-    },
-    cell: {
-        backgroundColor: '#FFE0B2',
-        margin: 2,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 8,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 2,
-    },
-    cellSelected: {
-        backgroundColor: '#FF5722',
-        transform: [{ scale: 0.95 }],
-    },
-    letterText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1565C0',
-    },
-    letterTextSelected: {
-        color: '#FFF',
-    },
-    bottomPanel: {
-        position: 'absolute',
-        bottom: 30,
-        left: 20,
-        right: 20,
-        alignItems: 'center',
-    },
-    currentWordText: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#FFF',
-        letterSpacing: 3,
-        marginBottom: 10,
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: -1, height: 1 },
-        textShadowRadius: 10
-    },
-    submitButtonText: {
-        color: '#FFF',
-        fontSize: 18,
-        fontWeight: 'bold',
-    }
+    gameContainer: { flex: 1, backgroundColor: '#8BC34A' },
+    topPanel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.2)' },
+    panelText: { fontSize: 18, fontWeight: 'bold', color: '#FFF' },
+    timerText: { fontSize: 24, fontWeight: '900', color: '#FFEB3B' },
+    gridBoard: { padding: 20, justifyContent: 'center', alignItems: 'center' },
+    gridContainer: { justifyContent: 'center', alignItems: 'center' },
+    row: { flexDirection: 'row' },
+    cell: { backgroundColor: '#FFE0B2', margin: 2, justifyContent: 'center', alignItems: 'center', borderRadius: 8, elevation: 3 },
+    cellSelected: { backgroundColor: '#FF5722' },
+    letterText: { fontSize: 24, fontWeight: 'bold', color: '#1565C0' },
+    letterTextSelected: { color: '#FFF' },
+    bottomPanel: { position: 'absolute', bottom: 40, left: 20, right: 20, alignItems: 'center' },
+    currentWordText: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 4 }
 });
