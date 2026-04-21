@@ -7,6 +7,7 @@ import TurnAmountQuery from './turnAmountScreen';
 import { generateInitialGrid } from '@/utils/gridGenerator';
 import { WordLibrary } from '@/storage/wordLibraryStorage';
 import { PointCalculator } from '@/utils/pointCalculator';
+import { ComboChecker } from '@/utils/comboCheck';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -17,11 +18,11 @@ interface CellPosition {
 }
 
 const GameScreen = () => {
-   
+
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
 
- 
+
     const [grid, setGrid] = useState<string[][]>([]);
     const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
     const [score, setScore] = useState(0);
@@ -30,7 +31,7 @@ const GameScreen = () => {
     const [longestWord, setLongestWord] = useState('');
 
 
-   
+
     useEffect(() => {
         if (gridSize > 0 && turnAmount > 0 && grid.length === 0) {
             setGrid(generateInitialGrid(gridSize));
@@ -91,19 +92,48 @@ const GameScreen = () => {
                 setSelectedCells([]);
                 return;
             }
-            
+
+
             const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
-            const wordExists : boolean = WordLibrary.isValidWord(word);
-            if (wordExists){
-                Alert.alert("Kelime Oluşturuldu", `Oluşturduğunuz kelime: ${word}`);
-                const wordPoint = PointCalculator.calculateScore(word);
-                setScore(score+wordPoint);
-                setPoppedAmount(poppedAmount+1);
-                if (word.length>longestWord.length) setLongestWord(word);
-            }else{
+            const wordExists: boolean = WordLibrary.isValidWord(word);
+
+            if (wordExists) {
+                let totalPoint = 0; 
+                let alertMessage = `Oluşturduğunuz kelime: ${word}`; 
+
+
+                if (word.length > 3) {
+                    const comboCheckResult = ComboChecker.checkCombo(word);
+
+                    if (comboCheckResult.length > 1) {
+                        alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
+
+                        for (const subWord of comboCheckResult) {
+                            totalPoint += PointCalculator.calculateScore(subWord); 
+                        }
+                    } else {
+                        totalPoint = PointCalculator.calculateScore(word);
+                    }
+                } else {
+                    totalPoint = PointCalculator.calculateScore(word);
+                }
+
+
+                setScore(prev => prev + totalPoint);
+                setPoppedAmount(prev => prev + 1);
+
+                if (word.length > longestWord.length) {
+                    setLongestWord(word);
+                }
+
+                // 3. Ekrana Bildirim Çıkarma (Döngü dışında, tek seferlik)
+                Alert.alert("Kelime Oluşturuldu", alertMessage);
+
+            } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
             }
 
+            // 4. Tur ve Seçim Sıfırlama
             setTurnAmount(prev => prev - 1);
             setSelectedCells([]);
         }
@@ -186,7 +216,7 @@ export default GameScreen;
 const styles = StyleSheet.create({
     gameContainer: {
         flex: 1,
-        backgroundColor: '#8BC34A', 
+        backgroundColor: '#8BC34A',
     },
     topPanel: {
         flexDirection: 'row',
@@ -212,7 +242,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     cell: {
-        backgroundColor: '#FFE0B2', 
+        backgroundColor: '#FFE0B2',
         margin: 2,
         justifyContent: 'center',
         alignItems: 'center',
@@ -224,7 +254,7 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
     },
     cellSelected: {
-        backgroundColor: '#FF5722', 
+        backgroundColor: '#FF5722',
         transform: [{ scale: 0.95 }],
     },
     letterText: {
