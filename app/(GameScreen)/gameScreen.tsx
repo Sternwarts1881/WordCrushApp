@@ -140,7 +140,7 @@ const GameScreen = () => {
             }
         } else if (event.nativeEvent.state === State.END) {
             if (selectedCells.length < 3) {
-                Alert.alert("Geçersiz", "En az 3 harf!");
+                Alert.alert("Geçersiz", "En az 3 harf olmalı!");
                 setSelectedCells([]);
                 return;
             }

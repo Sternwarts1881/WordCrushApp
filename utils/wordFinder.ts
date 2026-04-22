@@ -24,7 +24,6 @@ export const FindAvailableWordsCount = (grid: string[][]): number => {
         }
 
        
-        if (currentWord.length >= 10) return;
 
         // 8 komşu yöne doğru ilerle
         for (const [dx, dy] of directions) {
