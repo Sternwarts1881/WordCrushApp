@@ -12,6 +12,7 @@ import { WordLibrary } from '@/storage/wordLibraryStorage';
 import { ComboChecker } from '@/utils/comboCheck';
 import { generateInitialGrid } from '@/utils/gridGenerator';
 import { PointCalculator } from '@/utils/pointCalculator';
+import { findAvailableWordsCount } from '@/utils/wordFinderr';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -23,22 +24,20 @@ interface CellPosition {
 const GameScreen = () => {
     const router = useRouter();
 
-    // Kurulum Stateleri
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
 
-    // Oyun İçi Stateler
     const [grid, setGrid] = useState<string[][]>([]);
     const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
     const [score, setScore] = useState(0);
     const [poppedAmount, setPoppedAmount] = useState(0);
     const [longestWord, setLongestWord] = useState('');
+    const [availableWords, setAvailableWords] = useState(0);
     
     const [timeElapsed, setTimeElapsed] = useState(0);
     const [isGameOver, setIsGameOver] = useState(false);
     const [isGameActive, setIsGameActive] = useState(false);
 
-    // 1. OYUN KURULUMU
     useEffect(() => {
         if (gridSize > 0 && turnAmount > 0 && grid.length === 0) {
             setGrid(generateInitialGrid(gridSize));
@@ -46,7 +45,16 @@ const GameScreen = () => {
         }
     }, [gridSize, turnAmount]);
 
-    // 2. ZAMANLAYICI (TIMER)
+    useEffect(() => {
+        if (grid.length > 0) {
+            const timeoutId = setTimeout(() => {
+                const count = findAvailableWordsCount(grid);
+                setAvailableWords(count);
+            }, 10);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [grid]);
+
     useEffect(() => {
         let timer: ReturnType<typeof setInterval>;
         if (isGameActive && !isGameOver) {
@@ -63,7 +71,6 @@ const GameScreen = () => {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    // 3. FİZİKSEL GERİ TUŞU YAKALAYICI
     useEffect(() => {
         const backAction = () => {
             if (isGameActive && !isGameOver) { 
@@ -79,7 +86,6 @@ const GameScreen = () => {
         return () => backHandler.remove();
     }, [isGameActive, isGameOver]);
 
-    // 4. OYUN BİTİŞ KONTROLÜ VE SKOR KAYDI
     useEffect(() => {
         if (isGameActive && turnAmount === 0 && !isGameOver) {
             setIsGameOver(true);
@@ -104,14 +110,15 @@ const GameScreen = () => {
         }
     }, [turnAmount, isGameActive, isGameOver]);
 
-    // SÜRÜKLE BIRAK MANTIĞI
     const cellSize = (screenWidth - 40) / gridSize;
 
     const onGestureEvent = (event: any) => {
         const { x, y } = event.nativeEvent;
         if (x < 0 || y < 0 || x >= gridSize * cellSize || y >= gridSize * cellSize) return;
+        
         const col = Math.floor(x / cellSize);
         const row = Math.floor(y / cellSize);
+        
         if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return;
 
         const isAlreadySelected = selectedCells.some(cell => cell.row === row && cell.col === col);
@@ -137,33 +144,34 @@ const GameScreen = () => {
                 setSelectedCells([]);
                 return;
             }
+            
             const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
+            
             if (WordLibrary.isValidWord(word)) {
                 let pts = 0;
                 const combo = ComboChecker.checkCombo(word);
+                
                 if (combo.length > 1) {
                     combo.forEach(w => pts += PointCalculator.calculateScore(w));
                     Alert.alert("KOMBO!", `${combo.length} kelime bulundu!`);
                 } else {
                     pts = PointCalculator.calculateScore(word);
                 }
+                
                 setScore(p => p + pts);
                 setPoppedAmount(p => p + 1);
                 if (word.length > longestWord.length) setLongestWord(word);
             } else {
                 Alert.alert("Hata", "Sözlükte yok.");
             }
+            
             setTurnAmount(p => p - 1);
             setSelectedCells([]);
         }
     };
 
-    // --- EKRAN SIRALAMASI (DÜZELTİLDİ) ---
-
-    // 1. Önce boyut seçilmeli
     if (gridSize === 0) return <GridSizeQuery gridsize={gridSize} onSelectSize={setGridsize} />;
     
-    // 2. KRİTİK NOKTA: Oyun bittiyse bitiş ekranını göster (Hamle kontrolünden önce!)
     if (isGameOver) {
         return (
             <GameOverScreen 
@@ -176,41 +184,48 @@ const GameScreen = () => {
         );
     }
 
-    // 3. Oyun bitmediyse ve hamle seçilmediyse hamle seçtir
     if (turnAmount === 0) return <TurnAmountQuery turnamount={turnAmount} onSelectSize={setTurnAmount} />;
 
-    // 4. Hepsi tamamsa oyunu oynat
     return (
         <SafeAreaView style={styles.gameContainer}>
+            {/* ÜST PANEL: Puan, Hamle, Olası Kelimeler ve Süre */}
             <View style={styles.topPanel}>
                 <View>
                     <Text style={styles.panelText}>Puan: {score}</Text>
                     <Text style={styles.panelText}>Kalan Hamle: {turnAmount}</Text>
+                    {/* Olası kelimeler buraya, dikkat çekici sarı renkle taşındı */}
+                    <Text style={[styles.panelText, { color: '#FFEB3B', marginTop: 4 }]}>
+                        Olası Kelimeler: {availableWords}
+                    </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.timerText}>⏱ {formatTime(timeElapsed)}</Text>
                 </View>
             </View>
 
-            <GestureHandlerRootView style={styles.gridBoard}>
-                <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
-                    <View style={styles.gridContainer}>
-                        {grid.map((row, rI) => (
-                            <View key={rI} style={styles.row}>
-                                {row.map((letter, cI) => {
-                                    const sel = selectedCells.some(c => c.row === rI && c.col === cI);
-                                    return (
-                                        <View key={cI} style={[styles.cell, { width: cellSize - 4, height: cellSize - 4 }, sel && styles.cellSelected]}>
-                                            <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter}</Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        ))}
-                    </View>
-                </PanGestureHandler>
-            </GestureHandlerRootView>
+            {/* ORTA KISIM: Grid (Izgara) tam ortaya hizalanır */}
+            <View style={styles.middleContainer}>
+                <GestureHandlerRootView style={styles.gridBoard}>
+                    <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
+                        <View style={styles.gridContainer}>
+                            {grid.map((row, rI) => (
+                                <View key={rI} style={styles.row}>
+                                    {row.map((letter, cI) => {
+                                        const sel = selectedCells.some(c => c.row === rI && c.col === cI);
+                                        return (
+                                            <View key={cI} style={[styles.cell, { width: cellSize - 4, height: cellSize - 4 }, sel && styles.cellSelected]}>
+                                                <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter}</Text>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            ))}
+                        </View>
+                    </PanGestureHandler>
+                </GestureHandlerRootView>
+            </View>
 
+        
             <View style={styles.bottomPanel}>
                 <Text style={styles.currentWordText}>
                     {selectedCells.map(c => grid[c.row][c.col]).join('')}
@@ -223,17 +238,18 @@ const GameScreen = () => {
 export default GameScreen;
 
 const styles = StyleSheet.create({
-    gameContainer: { flex: 1, backgroundColor: '#8BC34A' },
+    gameContainer: { flex: 1, backgroundColor: '#8BC34A', justifyContent: 'space-between' }, // Flex yapısı düzeltildi
     topPanel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.2)' },
-    panelText: { fontSize: 18, fontWeight: 'bold', color: '#FFF' },
+    panelText: { fontSize: 16, fontWeight: 'bold', color: '#FFF', marginBottom: 4 },
     timerText: { fontSize: 24, fontWeight: '900', color: '#FFEB3B' },
-    gridBoard: { padding: 20, justifyContent: 'center', alignItems: 'center' },
+    middleContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' }, // Grid her ekranda tam ortada durur
+    gridBoard: { padding: 10, justifyContent: 'center', alignItems: 'center' },
     gridContainer: { justifyContent: 'center', alignItems: 'center' },
     row: { flexDirection: 'row' },
     cell: { backgroundColor: '#FFE0B2', margin: 2, justifyContent: 'center', alignItems: 'center', borderRadius: 8, elevation: 3 },
     cellSelected: { backgroundColor: '#FF5722' },
     letterText: { fontSize: 24, fontWeight: 'bold', color: '#1565C0' },
     letterTextSelected: { color: '#FFF' },
-    bottomPanel: { position: 'absolute', bottom: 40, left: 20, right: 20, alignItems: 'center' },
+    bottomPanel: { padding: 20, alignItems: 'center', minHeight: 80, justifyContent: 'center' }, // Absolute pozisyonlama kaldırıldı
     currentWordText: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 4 }
 });
