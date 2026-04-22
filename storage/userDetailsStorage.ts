@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const USERNAME_KEY = '@user_name';
 const GOLD_KEY = '@user_gold';
-const INITIAL_GOLD = 5000;
+const INITIAL_GOLD = 999999;
 
 export const UserDetailsStorage = {
 

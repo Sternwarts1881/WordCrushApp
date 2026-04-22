@@ -1,6 +1,6 @@
 import { WordLibrary } from '@/storage/wordLibraryStorage';
 
-export const findAvailableWordsCount = (grid: string[][]): number => {
+export const FindAvailableWordsCount = (grid: string[][]): number => {
     if (!grid || grid.length === 0) return 0;
     
     const size = grid.length;

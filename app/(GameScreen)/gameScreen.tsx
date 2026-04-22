@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, BackHandler, Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
-import GameOverScreen from './gameOverScreenn';
+import GameOverScreen from './gameOverScreen';
 import GridSizeQuery from './gridSizeScreen';
 import TurnAmountQuery from './turnAmountScreen';
 
@@ -12,7 +12,7 @@ import { WordLibrary } from '@/storage/wordLibraryStorage';
 import { ComboChecker } from '@/utils/comboCheck';
 import { generateInitialGrid } from '@/utils/gridGenerator';
 import { PointCalculator } from '@/utils/pointCalculator';
-import { findAvailableWordsCount } from '@/utils/wordFinderr';
+import { FindAvailableWordsCount } from '@/utils/wordFinder';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -48,7 +48,7 @@ const GameScreen = () => {
     useEffect(() => {
         if (grid.length > 0) {
             const timeoutId = setTimeout(() => {
-                const count = findAvailableWordsCount(grid);
+                const count = FindAvailableWordsCount(grid);
                 setAvailableWords(count);
             }, 10);
             return () => clearTimeout(timeoutId);
@@ -144,7 +144,7 @@ const GameScreen = () => {
                 setSelectedCells([]);
                 return;
             }
-            
+
             const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
             const wordExists: boolean = WordLibrary.isValidWord(word);
 
