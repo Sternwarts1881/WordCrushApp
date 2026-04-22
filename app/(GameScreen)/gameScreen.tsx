@@ -146,26 +146,46 @@ const GameScreen = () => {
             }
             
             const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
-            
-            if (WordLibrary.isValidWord(word)) {
-                let pts = 0;
-                const combo = ComboChecker.checkCombo(word);
-                
-                if (combo.length > 1) {
-                    combo.forEach(w => pts += PointCalculator.calculateScore(w));
-                    Alert.alert("KOMBO!", `${combo.length} kelime bulundu!`);
+            const wordExists: boolean = WordLibrary.isValidWord(word);
+
+            if (wordExists) {
+                let totalPoint = 0; 
+                let alertMessage = `Oluşturduğunuz kelime: ${word}`; 
+
+
+                if (word.length > 3) {
+                    const comboCheckResult = ComboChecker.checkCombo(word);
+
+                    if (comboCheckResult.length > 1) {
+                        alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
+
+                        for (const subWord of comboCheckResult) {
+                            totalPoint += PointCalculator.calculateScore(subWord); 
+                        }
+                    } else {
+                        totalPoint = PointCalculator.calculateScore(word);
+                    }
                 } else {
-                    pts = PointCalculator.calculateScore(word);
+                    totalPoint = PointCalculator.calculateScore(word);
                 }
-                
-                setScore(p => p + pts);
-                setPoppedAmount(p => p + 1);
-                if (word.length > longestWord.length) setLongestWord(word);
+
+
+                setScore(prev => prev + totalPoint);
+                setPoppedAmount(prev => prev + 1);
+
+                if (word.length > longestWord.length) {
+                    setLongestWord(word);
+                }
+
+                // 3. Ekrana Bildirim Çıkarma (Döngü dışında, tek seferlik)
+                Alert.alert("Kelime Oluşturuldu", alertMessage);
+
             } else {
-                Alert.alert("Hata", "Sözlükte yok.");
+                Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
             }
-            
-            setTurnAmount(p => p - 1);
+
+            // 4. Tur ve Seçim Sıfırlama
+            setTurnAmount(prev => prev - 1);
             setSelectedCells([]);
         }
     };
