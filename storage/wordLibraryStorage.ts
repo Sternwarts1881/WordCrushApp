@@ -44,7 +44,7 @@ class Trie {
 
 
 const DictionaryTrie = new Trie();
-(wordsData as string[]).forEach(word => DictionaryTrie.insert(word.toUpperCase()));
+(wordsData as string[]).forEach(word => DictionaryTrie.insert(word));
 
 export const WordLibrary = {
     isValidWord: (word: string) => DictionaryTrie.isValidWord(word),
