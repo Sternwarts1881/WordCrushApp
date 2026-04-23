@@ -231,9 +231,9 @@ const GameScreen = () => {
                 }
 
                 Alert.alert("Kelime Oluşturuldu", alertMessage);
-                CellRemover.removeSelectedCells(selectedCells,grid);
+                setGrid(CellRemover.handleCellRemoval(selectedCells,grid,gridSize));
 
-                
+
                 console.log('grid: ',grid);
 
             } else {
