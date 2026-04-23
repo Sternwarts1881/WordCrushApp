@@ -13,13 +13,14 @@ import { ComboChecker } from '@/utils/comboCheck';
 import { generateInitialGrid } from '@/utils/gridGenerator';
 import { PointCalculator } from '@/utils/pointCalculator';
 import { FindAvailableWordsCount } from '@/utils/wordFinder';
+import { CellRemover } from '@/utils/popCells';
 
 
 import { BoughtJokersStorage } from '@/storage/boughtJokers';
 
 const screenWidth = Dimensions.get('window').width;
 
-interface CellPosition {
+export interface CellPosition {
     row: number;
     col: number;
 }
@@ -230,6 +231,10 @@ const GameScreen = () => {
                 }
 
                 Alert.alert("Kelime Oluşturuldu", alertMessage);
+                CellRemover.removeSelectedCells(selectedCells,grid);
+
+                
+                console.log('grid: ',grid);
 
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
