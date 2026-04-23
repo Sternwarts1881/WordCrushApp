@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, BackHandler, Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 import GameOverScreen from './gameOverScreen';
@@ -23,6 +23,7 @@ interface CellPosition {
 
 const GameScreen = () => {
     const router = useRouter();
+    const navigation = useNavigation();
 
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
@@ -71,13 +72,17 @@ const GameScreen = () => {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    const requestEarlyExit = () => {
+        Alert.alert("Oyunu Bitir", "Çıkmak istediğinize emin misiniz ?", [
+            { text: "İptal", style: "cancel" },
+            { text: "Evet", onPress: () => setTurnAmount(0) }
+        ]);
+    };
+
     useEffect(() => {
         const backAction = () => {
             if (isGameActive && !isGameOver) { 
-                Alert.alert("Çıkış", "Oyundan çıkmak istediğinize emin misiniz?", [
-                    { text: "İptal", style: "cancel" },
-                    { text: "Evet", onPress: () => router.replace('/') } 
-                ]);
+                requestEarlyExit();
                 return true; 
             }
             return false;
@@ -85,6 +90,25 @@ const GameScreen = () => {
         const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
         return () => backHandler.remove();
     }, [isGameActive, isGameOver]);
+
+    useEffect(() => {
+        navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (isGameActive && !isGameOver) {
+                            requestEarlyExit();
+                        } else {
+                            router.back();
+                        }
+                    }}
+                    style={{ paddingRight: 20, paddingVertical: 5, marginLeft: -5 }}
+                >
+                    <Text style={{ fontSize: 26, color: '#333' }}>←</Text>
+                </TouchableOpacity>
+            )
+        });
+    }, [navigation, isGameActive, isGameOver]);
 
     useEffect(() => {
         if (isGameActive && turnAmount === 0 && !isGameOver) {
@@ -152,7 +176,6 @@ const GameScreen = () => {
                 let totalPoint = 0; 
                 let alertMessage = `Oluşturduğunuz kelime: ${word}`; 
 
-
                 if (word.length > 3) {
                     const comboCheckResult = ComboChecker.checkCombo(word);
 
@@ -169,7 +192,6 @@ const GameScreen = () => {
                     totalPoint = PointCalculator.calculateScore(word);
                 }
 
-
                 setScore(prev => prev + totalPoint);
                 setPoppedAmount(prev => prev + 1);
 
@@ -177,14 +199,12 @@ const GameScreen = () => {
                     setLongestWord(word);
                 }
 
-                // 3. Ekrana Bildirim Çıkarma (Döngü dışında, tek seferlik)
                 Alert.alert("Kelime Oluşturuldu", alertMessage);
 
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
             }
 
-            // 4. Tur ve Seçim Sıfırlama
             setTurnAmount(prev => prev - 1);
             setSelectedCells([]);
         }
@@ -208,12 +228,10 @@ const GameScreen = () => {
 
     return (
         <SafeAreaView style={styles.gameContainer}>
-            {/* ÜST PANEL: Puan, Hamle, Olası Kelimeler ve Süre */}
             <View style={styles.topPanel}>
                 <View>
                     <Text style={styles.panelText}>Puan: {score}</Text>
                     <Text style={styles.panelText}>Kalan Hamle: {turnAmount}</Text>
-                    {/* Olası kelimeler buraya, dikkat çekici sarı renkle taşındı */}
                     <Text style={[styles.panelText, { color: '#FFEB3B', marginTop: 4 }]}>
                         Olası Kelimeler: {availableWords}
                     </Text>
@@ -223,7 +241,6 @@ const GameScreen = () => {
                 </View>
             </View>
 
-            {/* ORTA KISIM: Grid (Izgara) tam ortaya hizalanır */}
             <View style={styles.middleContainer}>
                 <GestureHandlerRootView style={styles.gridBoard}>
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
@@ -258,11 +275,11 @@ const GameScreen = () => {
 export default GameScreen;
 
 const styles = StyleSheet.create({
-    gameContainer: { flex: 1, backgroundColor: '#8BC34A', justifyContent: 'space-between' }, // Flex yapısı düzeltildi
+    gameContainer: { flex: 1, backgroundColor: '#8BC34A', justifyContent: 'space-between' }, 
     topPanel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.2)' },
     panelText: { fontSize: 16, fontWeight: 'bold', color: '#FFF', marginBottom: 4 },
     timerText: { fontSize: 24, fontWeight: '900', color: '#FFEB3B' },
-    middleContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' }, // Grid her ekranda tam ortada durur
+    middleContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' }, 
     gridBoard: { padding: 10, justifyContent: 'center', alignItems: 'center' },
     gridContainer: { justifyContent: 'center', alignItems: 'center' },
     row: { flexDirection: 'row' },
@@ -270,6 +287,6 @@ const styles = StyleSheet.create({
     cellSelected: { backgroundColor: '#FF5722' },
     letterText: { fontSize: 24, fontWeight: 'bold', color: '#1565C0' },
     letterTextSelected: { color: '#FFF' },
-    bottomPanel: { padding: 20, alignItems: 'center', minHeight: 80, justifyContent: 'center' }, // Absolute pozisyonlama kaldırıldı
+    bottomPanel: { padding: 20, alignItems: 'center', minHeight: 80, justifyContent: 'center' }, 
     currentWordText: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 4 }
 });
