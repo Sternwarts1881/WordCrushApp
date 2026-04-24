@@ -12,6 +12,7 @@ import { ScoreboardStorage } from '@/storage/scoreboardStorage';
 import { WordLibrary } from '@/storage/wordLibraryStorage';
 import { ComboChecker } from '@/utils/comboCheck';
 import { generateInitialGrid } from '@/utils/gridGenerator';
+import { JokerLogic } from '@/utils/jokerLogic';
 import { PointCalculator } from '@/utils/pointCalculator';
 import { CellRemover } from '@/utils/popCells';
 import { FindAvailableWordsCount } from '@/utils/wordFinder';
@@ -32,7 +33,6 @@ const JOKER_LIST = [
     { id: 'partiGuclendiricisi', image: require('@/assets/images/jokers/parti.png') },
 ];
 
-// YENİ: Jokerlerin açıklamalarını tutan sözlük (Marketteki metinlerle burayı güncelleyebilirsin)
 const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
     'balik': { title: 'Joker: Balık', desc: 'Seçtiğiniz bir harfi yutarak yok eder ve yerine yeni harf düşmesini sağlar.' },
     'tekerlek': { title: 'Joker: Tekerlek', desc: 'Seçtiğiniz bir satırı veya sütunu tamamen yenileyerek taze harfler getirir.' },
@@ -59,6 +59,7 @@ const GameScreen = () => {
     const [isGameActive, setIsGameActive] = useState(false);
     const [inventory, setInventory] = useState<any>(null);
     const [activeJoker, setActiveJoker] = useState<string | null>(null);
+    const [swapFirstCell, setSwapFirstCell] = useState<CellPosition | null>(null);
 
     useEffect(() => {
         const loadInventory = async () => {
@@ -76,12 +77,56 @@ const GameScreen = () => {
         }
     };
 
-    
+   
+    useEffect(() => {
+        setSwapFirstCell(null);
+    }, [activeJoker]);
+
     const handleJokerInfo = (id: string) => {
         const info = JOKER_DESCRIPTIONS[id];
         if (info) {
             Alert.alert(info.title, info.desc);
         }
+    };
+
+    const handleJokerAction = async (row?: number, col?: number) => {
+        if (!activeJoker) return;
+
+        const currentCount = inventory ? inventory[activeJoker] : 0;
+        if (currentCount <= 0) {
+            Alert.alert("Bitti", "Bu jokerden elinizde kalmadı!");
+            setActiveJoker(null);
+            return;
+        }
+
+        if (activeJoker === 'serbestDegistirme') {
+            if (!swapFirstCell) {
+                setSwapFirstCell({ row: row!, col: col! });
+                return;
+            } else {
+                const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, swapFirstCell.row, swapFirstCell.col, row, col);
+                if (result.success) {
+                    setGrid(result.newGrid);
+                    const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
+                    setInventory(updatedInventory);
+                    await BoughtJokersStorage.updateJokers(updatedInventory);
+                }
+                setSwapFirstCell(null);
+                setActiveJoker(null);
+                return;
+            }
+        }
+
+        const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, row, col);
+        
+        if (result.success) {
+            setGrid(result.newGrid); 
+            const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
+            setInventory(updatedInventory);
+            await BoughtJokersStorage.updateJokers(updatedInventory);
+        }
+        
+        setActiveJoker(null);
     };
 
     useEffect(() => {
@@ -204,10 +249,18 @@ const GameScreen = () => {
             const { x, y } = event.nativeEvent;
             const col = Math.floor(x / cellSize);
             const row = Math.floor(y / cellSize);
+            
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+                if (activeJoker) {
+                    handleJokerAction(row, col);
+                    return; 
+                }
+                
                 setSelectedCells([{ row, col }]);
             }
         } else if (event.nativeEvent.state === State.END) {
+            if (selectedCells.length === 0) return;
+
             if (selectedCells.length < 3) {
                 Alert.alert("Geçersiz", "En az 3 harf olmalı!");
                 setSelectedCells([]);
@@ -300,7 +353,8 @@ const GameScreen = () => {
                             {grid.map((row, rI) => (
                                 <View key={rI} style={styles.row}>
                                     {row.map((letter, cI) => {
-                                        const sel = selectedCells.some(c => c.row === rI && c.col === cI);
+                                        const sel = selectedCells.some(c => c.row === rI && c.col === cI) || 
+                                                    (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
                                         return (
                                             <View key={cI} style={[styles.cell, { width: cellSize - 4, height: cellSize - 4 }, sel && styles.cellSelected]}>
                                                 <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter}</Text>
@@ -325,8 +379,8 @@ const GameScreen = () => {
                                 key={joker.id}
                                 style={[styles.jokerButton, isSelected && styles.jokerSelected]}
                                 onPress={() => toggleJoker(joker.id)}
-                                onLongPress={() => handleJokerInfo(joker.id)} // YENİ: Basılı tutma özelliği
-                                delayLongPress={3000} // YENİ: 3 Saniye (3000ms) şartı
+                                onLongPress={() => handleJokerInfo(joker.id)} 
+                                delayLongPress={3000} 
                                 activeOpacity={0.8}
                             >
                                 <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
