@@ -32,6 +32,16 @@ const JOKER_LIST = [
     { id: 'partiGuclendiricisi', image: require('@/assets/images/jokers/parti.png') },
 ];
 
+// YENİ: Jokerlerin açıklamalarını tutan sözlük (Marketteki metinlerle burayı güncelleyebilirsin)
+const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
+    'balik': { title: 'Joker: Balık', desc: 'Seçtiğiniz bir harfi yutarak yok eder ve yerine yeni harf düşmesini sağlar.' },
+    'tekerlek': { title: 'Joker: Tekerlek', desc: 'Seçtiğiniz bir satırı veya sütunu tamamen yenileyerek taze harfler getirir.' },
+    'lolipop': { title: 'Joker: Lolipop', desc: 'Izgaradaki istediğiniz bir harfi patlatarak anında yok eder.' },
+    'serbestDegistirme': { title: 'Joker: Serbest Değiştirme', desc: 'Izgaradaki herhangi iki harfin yerini, hamle harcamadan değiştirmenizi sağlar.' },
+    'harfKaristirma': { title: 'Joker: Harf Karıştırma', desc: 'Izgaradaki tüm harflerin yerlerini rastgele karıştırarak yeni kelime fırsatları yaratır.' },
+    'partiGuclendiricisi': { title: 'Joker: Parti Güçlendiricisi', desc: 'Izgaradaki rastgele harfleri aynı anda patlatarak büyük bir avantaj sağlar.' }
+};
+
 const GameScreen = () => {
     const router = useRouter();
     const navigation = useNavigation();
@@ -63,6 +73,14 @@ const GameScreen = () => {
             setActiveJoker(null); 
         } else {
             setActiveJoker(id); 
+        }
+    };
+
+    
+    const handleJokerInfo = (id: string) => {
+        const info = JOKER_DESCRIPTIONS[id];
+        if (info) {
+            Alert.alert(info.title, info.desc);
         }
     };
 
@@ -228,13 +246,11 @@ const GameScreen = () => {
 
                 Alert.alert("Kelime Oluşturuldu", alertMessage);
                 
-                // State Mutasyonunu engelleyen derin klonlama işlemi
                 const clonedGrid = grid.map(row => [...row]);
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
                 const refilledGrid = generateInitialGrid(gridSize, gridAfterRemoval);
                 
                 console.log('grid: ', refilledGrid);
-                
                 setGrid(refilledGrid);
 
             } else {
@@ -309,6 +325,8 @@ const GameScreen = () => {
                                 key={joker.id}
                                 style={[styles.jokerButton, isSelected && styles.jokerSelected]}
                                 onPress={() => toggleJoker(joker.id)}
+                                onLongPress={() => handleJokerInfo(joker.id)} // YENİ: Basılı tutma özelliği
+                                delayLongPress={3000} // YENİ: 3 Saniye (3000ms) şartı
                                 activeOpacity={0.8}
                             >
                                 <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
