@@ -34,12 +34,12 @@ const JOKER_LIST = [
 ];
 
 const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
-    'balik': { title: 'Joker: Balık', desc: 'Seçtiğiniz bir harfi yutarak yok eder ve yerine yeni harf düşmesini sağlar.' },
-    'tekerlek': { title: 'Joker: Tekerlek', desc: 'Seçtiğiniz bir satırı veya sütunu tamamen yenileyerek taze harfler getirir.' },
-    'lolipop': { title: 'Joker: Lolipop', desc: 'Izgaradaki istediğiniz bir harfi patlatarak anında yok eder.' },
-    'serbestDegistirme': { title: 'Joker: Serbest Değiştirme', desc: 'Izgaradaki herhangi iki harfin yerini, hamle harcamadan değiştirmenizi sağlar.' },
-    'harfKaristirma': { title: 'Joker: Harf Karıştırma', desc: 'Izgaradaki tüm harflerin yerlerini rastgele karıştırarak yeni kelime fırsatları yaratır.' },
-    'partiGuclendiricisi': { title: 'Joker: Parti Güçlendiricisi', desc: 'Izgaradaki rastgele harfleri aynı anda patlatarak büyük bir avantaj sağlar.' }
+    'balik': { title: 'Joker: Balık', desc: 'Seçtiğiniz bir harfi ve rastgele 2 komşusunu yutarak yok eder. Patlayan harfler puan kazandırır!' },
+    'tekerlek': { title: 'Joker: Tekerlek', desc: 'Seçtiğiniz bir satırı tamamen yeniler ve patlayan harflerin puanını size kazandırır.' },
+    'lolipop': { title: 'Joker: Lolipop', desc: 'İstediğiniz bir harfi patlatarak puanını hanenize yazdırır.' },
+    'serbestDegistirme': { title: 'Joker: Serbest Değiştirme', desc: 'Herhangi iki harfin yerini hamle harcamadan değiştirmenizi sağlar.' },
+    'harfKaristirma': { title: 'Joker: Harf Karıştırma', desc: 'Tüm harflerin yerlerini rastgele karıştırarak yeni fırsatlar yaratır.' },
+    'partiGuclendiricisi': { title: 'Joker: Parti Güçlendiricisi', desc: 'Rastgele 5 harfi patlatarak büyük bir puan ve alan avantajı sağlar.' }
 };
 
 const GameScreen = () => {
@@ -77,7 +77,6 @@ const GameScreen = () => {
         }
     };
 
-   
     useEffect(() => {
         setSwapFirstCell(null);
     }, [activeJoker]);
@@ -121,6 +120,11 @@ const GameScreen = () => {
         
         if (result.success) {
             setGrid(result.newGrid); 
+            
+            if (result.earnedScore && result.earnedScore > 0) {
+                setScore(prev => prev + result.earnedScore!);
+            }
+
             const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
             setInventory(updatedInventory);
             await BoughtJokersStorage.updateJokers(updatedInventory);
@@ -255,7 +259,6 @@ const GameScreen = () => {
                     handleJokerAction(row, col);
                     return; 
                 }
-                
                 setSelectedCells([{ row, col }]);
             }
         } else if (event.nativeEvent.state === State.END) {
@@ -418,65 +421,13 @@ const styles = StyleSheet.create({
     letterText: { fontSize: 24, fontWeight: 'bold', color: '#1565C0' },
     letterTextSelected: { color: '#FFF' },
     
-    footerContainer: {
-        width: '100%',
-        alignItems: 'center',
-        paddingBottom: 20,
-    },
-    jokersContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 280, 
-        marginBottom: 10,
-    },
-    jokerButton: {
-        width: 55,
-        height: 55,
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        margin: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        borderWidth: 3,
-        borderColor: 'transparent',
-    },
-    jokerSelected: {
-        borderColor: '#FFEB3B', 
-        backgroundColor: '#FFFDE7', 
-        transform: [{ scale: 1.20 }], 
-        elevation: 8,
-    },
-    jokerImage: {
-        width: 70,
-        height: 70,
-    },
-    badge: {
-        position: 'absolute',
-        top: -8,
-        left: -8,
-        backgroundColor: '#F44336', 
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#FFF',
-        elevation: 5,
-    },
-    badgeText: {
-        color: '#FFF',
-        fontSize: 12,
-        fontWeight: '900',
-    },
+    footerContainer: { width: '100%', alignItems: 'center', paddingBottom: 20 },
+    jokersContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: 280, marginBottom: 10 },
+    jokerButton: { width: 55, height: 55, backgroundColor: '#ffffff', borderRadius: 12, margin: 15, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, borderWidth: 3, borderColor: 'transparent' },
+    jokerSelected: { borderColor: '#FFEB3B', backgroundColor: '#FFFDE7', transform: [{ scale: 1.20 }], elevation: 8 },
+    jokerImage: { width: 70, height: 70 },
+    badge: { position: 'absolute', top: -8, left: -8, backgroundColor: '#F44336', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 5 },
+    badgeText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
     bottomPanel: { padding: 10, alignItems: 'center', minHeight: 60, justifyContent: 'center' }, 
     currentWordText: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 4 }
 });
