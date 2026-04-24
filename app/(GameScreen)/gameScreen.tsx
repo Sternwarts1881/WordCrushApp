@@ -7,16 +7,14 @@ import GameOverScreen from './gameOverScreen';
 import GridSizeQuery from './gridSizeScreen';
 import TurnAmountQuery from './turnAmountScreen';
 
+import { BoughtJokersStorage } from '@/storage/boughtJokers';
 import { ScoreboardStorage } from '@/storage/scoreboardStorage';
 import { WordLibrary } from '@/storage/wordLibraryStorage';
 import { ComboChecker } from '@/utils/comboCheck';
 import { generateInitialGrid } from '@/utils/gridGenerator';
 import { PointCalculator } from '@/utils/pointCalculator';
-import { FindAvailableWordsCount } from '@/utils/wordFinder';
 import { CellRemover } from '@/utils/popCells';
-
-
-import { BoughtJokersStorage } from '@/storage/boughtJokers';
+import { FindAvailableWordsCount } from '@/utils/wordFinder';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -24,7 +22,6 @@ export interface CellPosition {
     row: number;
     col: number;
 }
-
 
 const JOKER_LIST = [
     { id: 'balik', image: require('@/assets/images/jokers/balik.png') },
@@ -38,6 +35,7 @@ const JOKER_LIST = [
 const GameScreen = () => {
     const router = useRouter();
     const navigation = useNavigation();
+    
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
     const [grid, setGrid] = useState<string[][]>([]);
@@ -52,7 +50,6 @@ const GameScreen = () => {
     const [inventory, setInventory] = useState<any>(null);
     const [activeJoker, setActiveJoker] = useState<string | null>(null);
 
-   
     useEffect(() => {
         const loadInventory = async () => {
             const inv = await BoughtJokersStorage.getJokers();
@@ -61,7 +58,6 @@ const GameScreen = () => {
         loadInventory();
     }, []);
 
-    
     const toggleJoker = (id: string) => {
         if (activeJoker === id) {
             setActiveJoker(null); 
@@ -231,10 +227,15 @@ const GameScreen = () => {
                 }
 
                 Alert.alert("Kelime Oluşturuldu", alertMessage);
-                setGrid(CellRemover.handleCellRemoval(selectedCells,grid,gridSize));
-
-
-                console.log('grid: ',grid);
+                
+                // State Mutasyonunu engelleyen derin klonlama işlemi
+                const clonedGrid = grid.map(row => [...row]);
+                const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
+                const refilledGrid = generateInitialGrid(gridSize, gridAfterRemoval);
+                
+                console.log('grid: ', refilledGrid);
+                
+                setGrid(refilledGrid);
 
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
@@ -297,9 +298,7 @@ const GameScreen = () => {
                 </GestureHandlerRootView>
             </View>
 
-            
             <View style={styles.footerContainer}>
-                {/* 2x3 Joker Izgarası */}
                 <View style={styles.jokersContainer}>
                     {JOKER_LIST.map((joker) => {
                         const count = inventory ? inventory[joker.id] : 0;
@@ -313,7 +312,6 @@ const GameScreen = () => {
                                 activeOpacity={0.8}
                             >
                                 <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
-                              
                                 <View style={styles.badge}>
                                     <Text style={styles.badgeText}>{count}</Text>
                                 </View>
@@ -322,7 +320,6 @@ const GameScreen = () => {
                     })}
                 </View>
 
-               
                 <View style={styles.bottomPanel}>
                     <Text style={styles.currentWordText}>
                         {selectedCells.map(c => grid[c.row][c.col]).join('')}
@@ -349,7 +346,6 @@ const styles = StyleSheet.create({
     letterText: { fontSize: 24, fontWeight: 'bold', color: '#1565C0' },
     letterTextSelected: { color: '#FFF' },
     
-    // YENİ: Footer ve Joker Stilleri
     footerContainer: {
         width: '100%',
         alignItems: 'center',
