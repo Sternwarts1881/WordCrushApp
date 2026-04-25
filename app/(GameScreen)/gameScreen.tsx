@@ -11,7 +11,7 @@ import { BoughtJokersStorage } from '@/storage/boughtJokers';
 import { ScoreboardStorage } from '@/storage/scoreboardStorage';
 import { WordLibrary } from '@/storage/wordLibraryStorage';
 import { ComboChecker } from '@/utils/comboCheck';
-import { generateInitialGrid } from '@/utils/gridGenerator';
+import { generateGrid } from '@/utils/gridGenerator';
 import { JokerLogic } from '@/utils/jokerLogic';
 import { PointCalculator } from '@/utils/pointCalculator';
 import { CellRemover } from '@/utils/popCells';
@@ -22,6 +22,11 @@ const screenWidth = Dimensions.get('window').width;
 export interface CellPosition {
     row: number;
     col: number;
+}
+
+export interface CellInformation {
+    cellValue: string;
+    powerUp: string;
 }
 
 const JOKER_LIST = [
@@ -48,7 +53,7 @@ const GameScreen = () => {
     
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
-    const [grid, setGrid] = useState<string[][]>([]);
+    const [grid, setGrid] = useState<CellInformation[][]>([]);
     const [selectedCells, setSelectedCells] = useState<CellPosition[]>([]);
     const [score, setScore] = useState(0);
     const [poppedAmount, setPoppedAmount] = useState(0);
@@ -135,7 +140,7 @@ const GameScreen = () => {
 
     useEffect(() => {
         if (gridSize > 0 && turnAmount > 0 && grid.length === 0) {
-            setGrid(generateInitialGrid(gridSize));
+            setGrid(generateGrid(gridSize));
             setIsGameActive(true);
         }
     }, [gridSize, turnAmount]);
@@ -270,7 +275,7 @@ const GameScreen = () => {
                 return;
             }
 
-            const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
+            const word = selectedCells.map(cell => grid[cell.row][cell.col].cellValue).join('');
             const wordExists: boolean = WordLibrary.isValidWord(word);
 
             if (wordExists) {
@@ -304,7 +309,7 @@ const GameScreen = () => {
                 
                 const clonedGrid = grid.map(row => [...row]);
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
-                const refilledGrid = generateInitialGrid(gridSize, gridAfterRemoval);
+                const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
                 
                 console.log('grid: ', refilledGrid);
                 setGrid(refilledGrid);
@@ -360,7 +365,7 @@ const GameScreen = () => {
                                                     (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
                                         return (
                                             <View key={cI} style={[styles.cell, { width: cellSize - 4, height: cellSize - 4 }, sel && styles.cellSelected]}>
-                                                <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter}</Text>
+                                                <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter.cellValue}</Text>
                                             </View>
                                         );
                                     })}
@@ -397,7 +402,7 @@ const GameScreen = () => {
 
                 <View style={styles.bottomPanel}>
                     <Text style={styles.currentWordText}>
-                        {selectedCells.map(c => grid[c.row][c.col]).join('')}
+                        {selectedCells.map(c => grid[c.row][c.col].cellValue).join('')}
                     </Text>
                 </View>
             </View>

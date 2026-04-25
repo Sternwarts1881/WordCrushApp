@@ -1,4 +1,4 @@
-
+import { CellInformation } from "@/app/(GameScreen)/gameScreen";
 
 const generateLetterPool = (): string[] => {
     const pool: string[] = [];
@@ -24,20 +24,21 @@ export const getRandomLetter = (): string => {
 };
 
 
-export const generateInitialGrid = (size: number, currentGrid?: string[][]): string[][] => {
-    const grid: string[][] = [];
+
+export const generateGrid = (size: number, currentGrid?: CellInformation[][]): CellInformation[][] => {
+    const grid: CellInformation[][] = [];
     
     for (let row = 0; row < size; row++) {
-        const newRow: string[] = [];
+        const newRow: CellInformation[] = [];
         for (let col = 0; col < size; col++) {
             
             
-            if (currentGrid && currentGrid[row] && currentGrid[row][col] !== '') {
+            if (currentGrid && currentGrid[row] && currentGrid[row][col] && currentGrid[row][col].cellValue !== '') {
                 newRow.push(currentGrid[row][col]);
             } 
            
             else {
-                newRow.push(getRandomLetter());
+                newRow.push({ cellValue: getRandomLetter(), powerUp: '' });
             }
             
         }

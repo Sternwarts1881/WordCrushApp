@@ -1,10 +1,10 @@
-import { CellPosition } from "@/app/(GameScreen)/gameScreen";
-import { generateInitialGrid } from "./gridGenerator";
-import { PointCalculator } from "./pointCalculator"; // YENİ EKLENDİ
+import { CellInformation, CellPosition } from "@/app/(GameScreen)/gameScreen";
+import { generateGrid } from "./gridGenerator";
+import { PointCalculator } from "./pointCalculator";
 import { CellRemover } from "./popCells";
 
 export const JokerLogic = {
-    executeJoker: function(jokerId: string, grid: string[][], gridSize: number, row?: number, col?: number, targetRow?: number, targetCol?: number) {
+    executeJoker: function(jokerId: string, grid: CellInformation[][], gridSize: number, row?: number, col?: number, targetRow?: number, targetCol?: number) {
         let clonedGrid = grid.map(r => [...r]);
         let cellsToRemove: CellPosition[] = [];
         let earnedScore = 0; // YENİ: Jokerden kazanılacak puan
@@ -86,12 +86,12 @@ export const JokerLogic = {
             // YENİ: Harfler silinmeden önce puanlarını arkadaşının hesaplayıcısıyla topluyoruz
             let destroyedWord = "";
             cellsToRemove.forEach(cell => {
-                destroyedWord += clonedGrid[cell.row][cell.col];
+                destroyedWord += clonedGrid[cell.row][cell.col].cellValue;
             });
             earnedScore = PointCalculator.calculateScore(destroyedWord);
 
             clonedGrid = CellRemover.handleCellRemoval(cellsToRemove, clonedGrid, gridSize);
-            clonedGrid = generateInitialGrid(gridSize, clonedGrid);
+            clonedGrid = generateGrid(gridSize, clonedGrid);
             
             console.log(`[JOKER] ${jokerId} kullanıldı. Kazanılan Puan: ${earnedScore}. Yeni Grid: `, clonedGrid);
             return { success: true, newGrid: clonedGrid, earnedScore };

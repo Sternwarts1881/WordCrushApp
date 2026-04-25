@@ -1,6 +1,7 @@
 import { WordLibrary } from '@/storage/wordLibraryStorage';
+import { CellInformation } from '@/app/(GameScreen)/gameScreen';
 
-export const FindAvailableWordsCount = (grid: string[][]): number => {
+export const FindAvailableWordsCount = (grid: CellInformation[][]): number => {
     if (!grid || grid.length === 0) return 0;
 
     const size = grid.length;
@@ -32,7 +33,7 @@ export const FindAvailableWordsCount = (grid: string[][]): number => {
 
 
             if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size && !visited[newRow][newCol]) {
-                const nextWord = currentWord + grid[newRow][newCol];
+                const nextWord = currentWord + grid[newRow][newCol].cellValue;
 
 
                 if (WordLibrary.isValidPrefix(nextWord)) {
@@ -47,7 +48,7 @@ export const FindAvailableWordsCount = (grid: string[][]): number => {
     for (let r = 0; r < size; r++) {
         for (let c = 0; c < size; c++) {
             visited[r][c] = true;
-            dfs(r, c, grid[r][c]);
+            dfs(r, c, grid[r][c].cellValue);
             visited[r][c] = false;
         }
     };
