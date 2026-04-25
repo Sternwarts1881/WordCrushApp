@@ -383,7 +383,7 @@ const GameScreen = () => {
                                 style={[styles.jokerButton, isSelected && styles.jokerSelected]}
                                 onPress={() => toggleJoker(joker.id)}
                                 onLongPress={() => handleJokerInfo(joker.id)} 
-                                delayLongPress={3000} 
+                                delayLongPress={1000} 
                                 activeOpacity={0.8}
                             >
                                 <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
