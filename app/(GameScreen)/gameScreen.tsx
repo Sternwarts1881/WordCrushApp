@@ -359,20 +359,19 @@ const GameScreen = () => {
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
                 
                 setGrid(gridAfterRemoval);
-                setTurnAmount(prev => prev - 1);
-                setSelectedCells([]);
-
+                
                 // 2. AŞAMA: 400ms sonra (hem parçacıklar kaybolurken hem harfler düşerken) yenileri getir
                 setTimeout(() => {
                     const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
                     setGrid(refilledGrid);
                     setIsAnimating(false);
                 }, 400);
-
+                
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
-                setSelectedCells([]);
             }
+            setTurnAmount(prev => prev - 1);
+            setSelectedCells([]);
         }
     };
 
