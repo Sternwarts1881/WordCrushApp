@@ -18,6 +18,7 @@ import { JokerLogic } from '@/utils/jokerLogic';
 import { PointCalculator } from '@/utils/pointCalculator';
 import { CellRemover } from '@/utils/popCells';
 import { FindAvailableWordsCount } from '@/utils/wordFinder';
+import { PowerUpLogic } from '@/utils/powerUp';
 
 // YENİ: Ana dizindeki patlama efekti dosyamızı çağırıyoruz!
 import ExplosionParticle from '@/ExplosionParticle';
@@ -34,7 +35,7 @@ export interface CellPosition {
 }
 
 export interface CellInformation {
-    id?: string; 
+    id?: string;
     cellValue: string;
     powerUp: string;
 }
@@ -46,6 +47,13 @@ const JOKER_LIST = [
     { id: 'serbestDegistirme', image: require('@/assets/images/jokers/el.png') },
     { id: 'harfKaristirma', image: require('@/assets/images/jokers/karistirma.png') },
     { id: 'partiGuclendiricisi', image: require('@/assets/images/jokers/parti.png') },
+];
+
+const POWERUP_LIST = [
+    { id: 'sutunSilme', logo: '⇆' },
+    { id: 'satirSilme', logo: '✹' },
+    { id: 'alanPatlatma', logo: '⇅' },
+    { id: 'megaPatlatma', logo: '✪' }
 ];
 
 const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
@@ -60,7 +68,7 @@ const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
 const GameScreen = () => {
     const router = useRouter();
     const navigation = useNavigation();
-    
+
     const [gridSize, setGridsize] = useState(0);
     const [turnAmount, setTurnAmount] = useState(0);
     const [grid, setGrid] = useState<CellInformation[][]>([]);
@@ -75,7 +83,7 @@ const GameScreen = () => {
     const [inventory, setInventory] = useState<any>(null);
     const [activeJoker, setActiveJoker] = useState<string | null>(null);
     const [swapFirstCell, setSwapFirstCell] = useState<CellPosition | null>(null);
-    
+
     const [isAnimating, setIsAnimating] = useState(false);
 
     // YENİ: Patlama parçacıklarını tutacağımız state
@@ -90,11 +98,11 @@ const GameScreen = () => {
     }, []);
 
     const toggleJoker = (id: string) => {
-        if (isAnimating) return; 
+        if (isAnimating) return;
         if (activeJoker === id) {
-            setActiveJoker(null); 
+            setActiveJoker(null);
         } else {
-            setActiveJoker(id); 
+            setActiveJoker(id);
         }
     };
 
@@ -119,7 +127,7 @@ const GameScreen = () => {
             return;
         }
 
-        setIsAnimating(true); 
+        setIsAnimating(true);
 
         if (activeJoker === 'serbestDegistirme') {
             if (!swapFirstCell) {
@@ -136,16 +144,16 @@ const GameScreen = () => {
                 }
                 setSwapFirstCell(null);
                 setActiveJoker(null);
-                setTimeout(() => setIsAnimating(false), 400); 
+                setTimeout(() => setIsAnimating(false), 400);
                 return;
             }
         }
 
         const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, row, col);
-        
+
         if (result.success) {
-            setGrid(result.newGrid); 
-            
+            setGrid(result.newGrid);
+
             if (result.earnedScore && result.earnedScore > 0) {
                 setScore(prev => prev + result.earnedScore!);
             }
@@ -154,7 +162,7 @@ const GameScreen = () => {
             setInventory(updatedInventory);
             await BoughtJokersStorage.updateJokers(updatedInventory);
         }
-        
+
         setActiveJoker(null);
         setTimeout(() => setIsAnimating(false), 400);
     };
@@ -201,9 +209,9 @@ const GameScreen = () => {
 
     useEffect(() => {
         const backAction = () => {
-            if (isGameActive && !isGameOver && !isAnimating) { 
+            if (isGameActive && !isGameOver && !isAnimating) {
                 requestEarlyExit();
-                return true; 
+                return true;
             }
             return false;
         };
@@ -214,7 +222,7 @@ const GameScreen = () => {
     useEffect(() => {
         navigation.setOptions({
             headerLeft: () => (
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={() => {
                         if (isGameActive && !isGameOver && !isAnimating) {
                             requestEarlyExit();
@@ -233,14 +241,14 @@ const GameScreen = () => {
     useEffect(() => {
         if (isGameActive && turnAmount === 0 && !isGameOver && !isAnimating) {
             setIsGameOver(true);
-            setIsGameActive(false); 
-            
+            setIsGameActive(false);
+
             const saveGameData = async () => {
                 const today = new Date();
                 const dateString = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
-                
+
                 const gameRecord = {
-                    id: Math.floor(Math.random() * 10000), 
+                    id: Math.floor(Math.random() * 10000),
                     date: dateString,
                     gridSize: `${gridSize}x${gridSize}`,
                     score: score,
@@ -257,14 +265,14 @@ const GameScreen = () => {
     const cellSize = (screenWidth - 40) / gridSize;
 
     const onGestureEvent = (event: any) => {
-        if (isAnimating) return; 
+        if (isAnimating) return;
 
         const { x, y } = event.nativeEvent;
         if (x < 0 || y < 0 || x >= gridSize * cellSize || y >= gridSize * cellSize) return;
-        
+
         const col = Math.floor(x / cellSize);
         const row = Math.floor(y / cellSize);
-        
+
         if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return;
 
         const isAlreadySelected = selectedCells.some(cell => cell.row === row && cell.col === col);
@@ -277,17 +285,17 @@ const GameScreen = () => {
     };
 
     const onHandlerStateChange = (event: any) => {
-        if (isAnimating) return; 
+        if (isAnimating) return;
 
         if (event.nativeEvent.state === State.BEGAN) {
             const { x, y } = event.nativeEvent;
             const col = Math.floor(x / cellSize);
             const row = Math.floor(y / cellSize);
-            
+
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
                 if (activeJoker) {
                     handleJokerAction(row, col);
-                    return; 
+                    return;
                 }
                 setSelectedCells([{ row, col }]);
             }
@@ -304,10 +312,10 @@ const GameScreen = () => {
             const wordExists: boolean = WordLibrary.isValidWord(word);
 
             if (wordExists) {
-                setIsAnimating(true); 
+                setIsAnimating(true);
 
-                let totalPoint = 0; 
-                let alertMessage = `Oluşturduğunuz kelime: ${word}`; 
+                let totalPoint = 0;
+                let alertMessage = `Oluşturduğunuz kelime: ${word}`;
 
                 if (word.length > 3) {
                     const comboCheckResult = ComboChecker.checkCombo(word);
@@ -315,7 +323,7 @@ const GameScreen = () => {
                     if (comboCheckResult.length > 1) {
                         alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
                         for (const subWord of comboCheckResult) {
-                            totalPoint += PointCalculator.calculateScore(subWord); 
+                            totalPoint += PointCalculator.calculateScore(subWord);
                         }
                     } else {
                         totalPoint = PointCalculator.calculateScore(word);
@@ -329,12 +337,60 @@ const GameScreen = () => {
 
                 if (word.length > longestWord.length) {
                     setLongestWord(word);
+                };
+
+                const uzunluk = selectedCells.length;
+                if (uzunluk >= 4) {
+                    const sonHucre = selectedCells[uzunluk - 1];
+                    switch (uzunluk) {
+                        case 4:
+                            grid[sonHucre.row][sonHucre.col].powerUp = 'satirSilme';
+                            break;
+                        case 5:
+                            grid[sonHucre.row][sonHucre.col].powerUp = 'alanPatlatma';
+                            break;
+                        case 6:
+                            grid[sonHucre.row][sonHucre.col].powerUp = 'sutunSilme';
+                            break;
+                        default:
+                            grid[sonHucre.row][sonHucre.col].powerUp = 'megaPatlatma';
+                            break;
+                    };
+                    selectedCells.pop();
+                };
+
+                let powerUpGrid = grid.map(row => [...row]); 
+                let extraPowerUpScore = 0;
+
+                selectedCells.forEach(cell => {
+                    const existingPowerUp = powerUpGrid[cell.row][cell.col].powerUp;
+
+                    if (existingPowerUp) {
+
+                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, clonedGrid, gridSize, cell.row, cell.col);
+
+                        if (powerResult && powerResult.success) {
+                            powerUpGrid = powerResult.newGrid; 
+
+                            if (powerResult.earnedScore) {
+                                extraPowerUpScore += powerResult.earnedScore;
+                            }
+
+                            powerUpGrid[cell.row][cell.col].powerUp = '';
+                            setGrid(powerUpGrid);
+                        }
+                    }
+                });
+
+                // Eğer PowerUp'lardan ekstra puan geldiyse skora ekle
+                if (extraPowerUpScore > 0) {
+                    setScore(prev => prev + extraPowerUpScore);
                 }
-                
+
                 // YENİ: PATLAMA EFEKTİ İÇİN PARÇACIKLARI ÜRETİYORUZ!
                 const newParticles: any[] = [];
                 const colors = ['#FF5722', '#FFEB3B', '#FFC107', '#FFFFFF']; // Ateş rengi tonları
-                
+
                 selectedCells.forEach((cell) => {
                     // Hücrenin tam orta noktasını hesaplıyoruz
                     const centerX = cell.col * cellSize + cellSize / 2;
@@ -354,19 +410,20 @@ const GameScreen = () => {
 
                 setExplosionParticles(prev => [...prev, ...newParticles]); // Parçacıkları ekrana bas
 
+
                 // 1. AŞAMA: Harfleri Sil
                 const clonedGrid = grid.map(row => [...row]);
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
-                
+
                 setGrid(gridAfterRemoval);
-                
+
                 // 2. AŞAMA: 400ms sonra (hem parçacıklar kaybolurken hem harfler düşerken) yenileri getir
                 setTimeout(() => {
                     const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
                     setGrid(refilledGrid);
                     setIsAnimating(false);
                 }, 400);
-                
+
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
             }
@@ -376,15 +433,15 @@ const GameScreen = () => {
     };
 
     if (gridSize === 0) return <GridSizeQuery gridsize={gridSize} onSelectSize={setGridsize} />;
-    
+
     if (isGameOver) {
         return (
-            <GameOverScreen 
-                score={score} 
-                wordsFound={poppedAmount} 
-                longestWord={longestWord} 
-                timeElapsed={timeElapsed} 
-                onReturn={() => router.replace('/')} 
+            <GameOverScreen
+                score={score}
+                wordsFound={poppedAmount}
+                longestWord={longestWord}
+                timeElapsed={timeElapsed}
+                onReturn={() => router.replace('/')}
             />
         );
     }
@@ -411,7 +468,7 @@ const GameScreen = () => {
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
                         {/* Koordinatların doğru oturması için ana kaba position: 'relative' eklendi */}
                         <View style={[styles.gridContainer, { position: 'relative' }]}>
-                            
+
                             {/* YENİ: Parçacıkları gridin ÜZERİNDE render ediyoruz */}
                             {explosionParticles.map(p => (
                                 <ExplosionParticle
@@ -431,30 +488,41 @@ const GameScreen = () => {
                                 <View key={`col-${cI}`} style={styles.column}>
                                     {grid.map((row, rI) => {
                                         const letter = grid[rI][cI];
-                                        if (!letter) return null; 
-                                        
-                                        const sel = selectedCells.some(c => c.row === rI && c.col === cI) || 
-                                                    (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
-                                                    
-                                        const isEmpty = letter.cellValue === ''; 
-                                        
+                                        if (!letter) return null;
+
+                                        const sel = selectedCells.some(c => c.row === rI && c.col === cI) ||
+                                            (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
+
+                                        const isEmpty = letter.cellValue === '';
+
                                         return (
-                                            <Animated.View 
-                                                key={letter.id || `empty-${rI}-${cI}`} 
-                                                layout={LinearTransition.springify().damping(14).stiffness(100)} 
-                                                entering={isEmpty ? undefined : ZoomIn.duration(300).springify()} 
-                                                exiting={isEmpty ? undefined : ZoomOut.duration(200)} 
+                                            <Animated.View
+                                                key={letter.id || `empty-${rI}-${cI}`}
+                                                layout={LinearTransition.springify().damping(14).stiffness(100)}
+                                                entering={isEmpty ? undefined : ZoomIn.duration(300).springify()}
+                                                exiting={isEmpty ? undefined : ZoomOut.duration(200)}
                                                 style={[
-                                                    styles.cell, 
-                                                    { width: cellSize - 4, height: cellSize - 4 }, 
+                                                    styles.cell,
+                                                    { width: cellSize - 4, height: cellSize - 4 },
                                                     sel && styles.cellSelected,
-                                                    isEmpty && { backgroundColor: 'transparent', elevation: 0 } 
+                                                    isEmpty && { backgroundColor: 'transparent', elevation: 0 }
                                                 ]}
                                             >
                                                 {!isEmpty && (
-                                                    <Text style={[styles.letterText, sel && styles.letterTextSelected]}>
-                                                        {letter.cellValue}
-                                                    </Text>
+                                                    <>
+                                                        <Text style={[styles.letterText, sel && styles.letterTextSelected]}>
+                                                            {letter.cellValue}
+                                                        </Text>
+
+                                                        {/* YENİ: PowerUp varsa köşede simgesini gösteriyoruz */}
+                                                        {letter.powerUp ? (
+                                                            <View style={styles.powerUpBadge}>
+                                                                <Text style={styles.powerUpText}>
+                                                                    {POWERUP_LIST.find(p => p.id === letter.powerUp)?.logo || '★'}
+                                                                </Text>
+                                                            </View>
+                                                        ) : null}
+                                                    </>
                                                 )}
                                             </Animated.View>
                                         );
@@ -471,15 +539,15 @@ const GameScreen = () => {
                     {JOKER_LIST.map((joker) => {
                         const count = inventory ? inventory[joker.id] : 0;
                         const isSelected = activeJoker === joker.id;
-                        
+
                         return (
                             <TouchableOpacity
                                 key={joker.id}
                                 style={[styles.jokerButton, isSelected && styles.jokerSelected]}
                                 onPress={() => toggleJoker(joker.id)}
-                                onLongPress={() => handleJokerInfo(joker.id)} 
-                                delayLongPress={1000} 
-                                activeOpacity={isAnimating ? 1 : 0.8} 
+                                onLongPress={() => handleJokerInfo(joker.id)}
+                                delayLongPress={1000}
+                                activeOpacity={isAnimating ? 1 : 0.8}
                             >
                                 <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
                                 <View style={styles.badge}>
@@ -503,11 +571,11 @@ const GameScreen = () => {
 export default GameScreen;
 
 const styles = StyleSheet.create({
-    gameContainer: { flex: 1, backgroundColor: '#8BC34A', justifyContent: 'space-between' }, 
+    gameContainer: { flex: 1, backgroundColor: '#8BC34A', justifyContent: 'space-between' },
     topPanel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.2)' },
     panelText: { fontSize: 16, fontWeight: 'bold', color: '#FFF', marginBottom: 4 },
     timerText: { fontSize: 24, fontWeight: '900', color: '#FFEB3B' },
-    middleContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' }, 
+    middleContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     gridBoard: { padding: 10, justifyContent: 'center', alignItems: 'center' },
     gridContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
     column: { flexDirection: 'column' },
@@ -522,6 +590,25 @@ const styles = StyleSheet.create({
     jokerImage: { width: 70, height: 70 },
     badge: { position: 'absolute', top: -8, left: -8, backgroundColor: '#F44336', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 5 },
     badgeText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
-    bottomPanel: { padding: 10, alignItems: 'center', minHeight: 60, justifyContent: 'center' }, 
-    currentWordText: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 4 }
+    bottomPanel: { padding: 10, alignItems: 'center', minHeight: 60, justifyContent: 'center' },
+    currentWordText: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: 4 },
+    powerUpBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        backgroundColor: '#D32F2F',
+        borderRadius: 12,
+        width: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: '#FFF'
+    },
+    powerUpText: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+    }
 });
