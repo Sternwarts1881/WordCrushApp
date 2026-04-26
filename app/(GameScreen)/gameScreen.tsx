@@ -1,9 +1,8 @@
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, BackHandler, Dimensions, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, BackHandler, Dimensions, Image, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, UIManager, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
-// YENİ: Reanimated Kütüphanesi İçe Aktarıldı!
 import Animated, { LinearTransition, ZoomIn, ZoomOut } from 'react-native-reanimated';
 
 import GameOverScreen from './gameOverScreen';
@@ -19,6 +18,13 @@ import { JokerLogic } from '@/utils/jokerLogic';
 import { PointCalculator } from '@/utils/pointCalculator';
 import { CellRemover } from '@/utils/popCells';
 import { FindAvailableWordsCount } from '@/utils/wordFinder';
+
+// YENİ: Ana dizindeki patlama efekti dosyamızı çağırıyoruz!
+import ExplosionParticle from '@/ExplosionParticle';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -71,6 +77,9 @@ const GameScreen = () => {
     const [swapFirstCell, setSwapFirstCell] = useState<CellPosition | null>(null);
     
     const [isAnimating, setIsAnimating] = useState(false);
+
+    // YENİ: Patlama parçacıklarını tutacağımız state
+    const [explosionParticles, setExplosionParticles] = useState<any[]>([]);
 
     useEffect(() => {
         const loadInventory = async () => {
@@ -127,7 +136,7 @@ const GameScreen = () => {
                 }
                 setSwapFirstCell(null);
                 setActiveJoker(null);
-                setTimeout(() => setIsAnimating(false), 400); // Bekleme süresi Reanimated'a göre kısaltıldı
+                setTimeout(() => setIsAnimating(false), 400); 
                 return;
             }
         }
@@ -305,7 +314,6 @@ const GameScreen = () => {
 
                     if (comboCheckResult.length > 1) {
                         alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
-
                         for (const subWord of comboCheckResult) {
                             totalPoint += PointCalculator.calculateScore(subWord); 
                         }
@@ -323,15 +331,38 @@ const GameScreen = () => {
                     setLongestWord(word);
                 }
                 
+                // YENİ: PATLAMA EFEKTİ İÇİN PARÇACIKLARI ÜRETİYORUZ!
+                const newParticles: any[] = [];
+                const colors = ['#FF5722', '#FFEB3B', '#FFC107', '#FFFFFF']; // Ateş rengi tonları
+                
+                selectedCells.forEach((cell) => {
+                    // Hücrenin tam orta noktasını hesaplıyoruz
+                    const centerX = cell.col * cellSize + cellSize / 2;
+                    const centerY = cell.row * cellSize + cellSize / 2;
+
+                    // Her bir harf için 8 tane sağa sola fırlayacak parçacık oluşturuyoruz
+                    for (let i = 0; i < 8; i++) {
+                        newParticles.push({
+                            id: Math.random().toString(),
+                            x: centerX,
+                            y: centerY,
+                            color: colors[Math.floor(Math.random() * colors.length)],
+                            size: cellSize / 4, // Hücrenin 4'te 1'i büyüklüğünde
+                        });
+                    }
+                });
+
+                setExplosionParticles(prev => [...prev, ...newParticles]); // Parçacıkları ekrana bas
+
+                // 1. AŞAMA: Harfleri Sil
                 const clonedGrid = grid.map(row => [...row]);
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
                 
-                // 1. AŞAMA: Harfleri siliyoruz, Reanimated eski harfleri otomatik patlatacak ve diğerlerini düşürecek
                 setGrid(gridAfterRemoval);
                 setTurnAmount(prev => prev - 1);
                 setSelectedCells([]);
 
-                // 2. AŞAMA: 400ms sonra yukarıdan yeni harfleri üretiyoruz
+                // 2. AŞAMA: 400ms sonra (hem parçacıklar kaybolurken hem harfler düşerken) yenileri getir
                 setTimeout(() => {
                     const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
                     setGrid(refilledGrid);
@@ -379,7 +410,24 @@ const GameScreen = () => {
             <View style={styles.middleContainer}>
                 <GestureHandlerRootView style={styles.gridBoard}>
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
-                        <View style={styles.gridContainer}>
+                        {/* Koordinatların doğru oturması için ana kaba position: 'relative' eklendi */}
+                        <View style={[styles.gridContainer, { position: 'relative' }]}>
+                            
+                            {/* YENİ: Parçacıkları gridin ÜZERİNDE render ediyoruz */}
+                            {explosionParticles.map(p => (
+                                <ExplosionParticle
+                                    key={p.id}
+                                    x={p.x}
+                                    y={p.y}
+                                    color={p.color}
+                                    size={p.size}
+                                    onComplete={() => {
+                                        // Animasyon bitince parçacığı hafızadan temizle ki performansı yormasın
+                                        setExplosionParticles(prev => prev.filter(particle => particle.id !== p.id));
+                                    }}
+                                />
+                            ))}
+
                             {Array.from({ length: gridSize }).map((_, cI) => (
                                 <View key={`col-${cI}`} style={styles.column}>
                                     {grid.map((row, rI) => {
@@ -392,12 +440,11 @@ const GameScreen = () => {
                                         const isEmpty = letter.cellValue === ''; 
                                         
                                         return (
-                                            /* YENİ: Reanimated Animated.View bileşeni ve animasyon komutları eklendi! */
                                             <Animated.View 
                                                 key={letter.id || `empty-${rI}-${cI}`} 
-                                                layout={LinearTransition.springify().damping(14).stiffness(100)} // Düşme animasyonu
-                                                entering={isEmpty ? undefined : ZoomIn.duration(300).springify()} // Büyüyerek gelme
-                                                exiting={isEmpty ? undefined : ZoomOut.duration(200)} // Patlayarak silinme
+                                                layout={LinearTransition.springify().damping(14).stiffness(100)} 
+                                                entering={isEmpty ? undefined : ZoomIn.duration(300).springify()} 
+                                                exiting={isEmpty ? undefined : ZoomOut.duration(200)} 
                                                 style={[
                                                     styles.cell, 
                                                     { width: cellSize - 4, height: cellSize - 4 }, 
