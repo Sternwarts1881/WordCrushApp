@@ -3,6 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { Alert, BackHandler, Dimensions, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
+// YENİ: Reanimated Kütüphanesi İçe Aktarıldı!
+import Animated, { LinearTransition, ZoomIn, ZoomOut } from 'react-native-reanimated';
+
 import GameOverScreen from './gameOverScreen';
 import GridSizeQuery from './gridSizeScreen';
 import TurnAmountQuery from './turnAmountScreen';
@@ -25,6 +28,7 @@ export interface CellPosition {
 }
 
 export interface CellInformation {
+    id?: string; 
     cellValue: string;
     powerUp: string;
 }
@@ -65,6 +69,8 @@ const GameScreen = () => {
     const [inventory, setInventory] = useState<any>(null);
     const [activeJoker, setActiveJoker] = useState<string | null>(null);
     const [swapFirstCell, setSwapFirstCell] = useState<CellPosition | null>(null);
+    
+    const [isAnimating, setIsAnimating] = useState(false);
 
     useEffect(() => {
         const loadInventory = async () => {
@@ -75,6 +81,7 @@ const GameScreen = () => {
     }, []);
 
     const toggleJoker = (id: string) => {
+        if (isAnimating) return; 
         if (activeJoker === id) {
             setActiveJoker(null); 
         } else {
@@ -94,7 +101,7 @@ const GameScreen = () => {
     };
 
     const handleJokerAction = async (row?: number, col?: number) => {
-        if (!activeJoker) return;
+        if (!activeJoker || isAnimating) return;
 
         const currentCount = inventory ? inventory[activeJoker] : 0;
         if (currentCount <= 0) {
@@ -103,9 +110,12 @@ const GameScreen = () => {
             return;
         }
 
+        setIsAnimating(true); 
+
         if (activeJoker === 'serbestDegistirme') {
             if (!swapFirstCell) {
                 setSwapFirstCell({ row: row!, col: col! });
+                setIsAnimating(false);
                 return;
             } else {
                 const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, swapFirstCell.row, swapFirstCell.col, row, col);
@@ -117,6 +127,7 @@ const GameScreen = () => {
                 }
                 setSwapFirstCell(null);
                 setActiveJoker(null);
+                setTimeout(() => setIsAnimating(false), 400); // Bekleme süresi Reanimated'a göre kısaltıldı
                 return;
             }
         }
@@ -136,6 +147,7 @@ const GameScreen = () => {
         }
         
         setActiveJoker(null);
+        setTimeout(() => setIsAnimating(false), 400);
     };
 
     useEffect(() => {
@@ -180,7 +192,7 @@ const GameScreen = () => {
 
     useEffect(() => {
         const backAction = () => {
-            if (isGameActive && !isGameOver) { 
+            if (isGameActive && !isGameOver && !isAnimating) { 
                 requestEarlyExit();
                 return true; 
             }
@@ -188,16 +200,16 @@ const GameScreen = () => {
         };
         const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
         return () => backHandler.remove();
-    }, [isGameActive, isGameOver]);
+    }, [isGameActive, isGameOver, isAnimating]);
 
     useEffect(() => {
         navigation.setOptions({
             headerLeft: () => (
                 <TouchableOpacity 
                     onPress={() => {
-                        if (isGameActive && !isGameOver) {
+                        if (isGameActive && !isGameOver && !isAnimating) {
                             requestEarlyExit();
-                        } else {
+                        } else if (!isAnimating) {
                             router.back();
                         }
                     }}
@@ -207,10 +219,10 @@ const GameScreen = () => {
                 </TouchableOpacity>
             )
         });
-    }, [navigation, isGameActive, isGameOver]);
+    }, [navigation, isGameActive, isGameOver, isAnimating]);
 
     useEffect(() => {
-        if (isGameActive && turnAmount === 0 && !isGameOver) {
+        if (isGameActive && turnAmount === 0 && !isGameOver && !isAnimating) {
             setIsGameOver(true);
             setIsGameActive(false); 
             
@@ -231,11 +243,13 @@ const GameScreen = () => {
             };
             saveGameData();
         }
-    }, [turnAmount, isGameActive, isGameOver]);
+    }, [turnAmount, isGameActive, isGameOver, isAnimating]);
 
     const cellSize = (screenWidth - 40) / gridSize;
 
     const onGestureEvent = (event: any) => {
+        if (isAnimating) return; 
+
         const { x, y } = event.nativeEvent;
         if (x < 0 || y < 0 || x >= gridSize * cellSize || y >= gridSize * cellSize) return;
         
@@ -254,6 +268,8 @@ const GameScreen = () => {
     };
 
     const onHandlerStateChange = (event: any) => {
+        if (isAnimating) return; 
+
         if (event.nativeEvent.state === State.BEGAN) {
             const { x, y } = event.nativeEvent;
             const col = Math.floor(x / cellSize);
@@ -279,6 +295,8 @@ const GameScreen = () => {
             const wordExists: boolean = WordLibrary.isValidWord(word);
 
             if (wordExists) {
+                setIsAnimating(true); 
+
                 let totalPoint = 0; 
                 let alertMessage = `Oluşturduğunuz kelime: ${word}`; 
 
@@ -304,22 +322,26 @@ const GameScreen = () => {
                 if (word.length > longestWord.length) {
                     setLongestWord(word);
                 }
-
-                Alert.alert("Kelime Oluşturuldu", alertMessage);
                 
                 const clonedGrid = grid.map(row => [...row]);
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
-                const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
                 
-                console.log('grid: ', refilledGrid);
-                setGrid(refilledGrid);
+                // 1. AŞAMA: Harfleri siliyoruz, Reanimated eski harfleri otomatik patlatacak ve diğerlerini düşürecek
+                setGrid(gridAfterRemoval);
+                setTurnAmount(prev => prev - 1);
+                setSelectedCells([]);
+
+                // 2. AŞAMA: 400ms sonra yukarıdan yeni harfleri üretiyoruz
+                setTimeout(() => {
+                    const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
+                    setGrid(refilledGrid);
+                    setIsAnimating(false);
+                }, 400);
 
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
+                setSelectedCells([]);
             }
-
-            setTurnAmount(prev => prev - 1);
-            setSelectedCells([]);
         }
     };
 
@@ -358,15 +380,37 @@ const GameScreen = () => {
                 <GestureHandlerRootView style={styles.gridBoard}>
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
                         <View style={styles.gridContainer}>
-                            {grid.map((row, rI) => (
-                                <View key={rI} style={styles.row}>
-                                    {row.map((letter, cI) => {
+                            {Array.from({ length: gridSize }).map((_, cI) => (
+                                <View key={`col-${cI}`} style={styles.column}>
+                                    {grid.map((row, rI) => {
+                                        const letter = grid[rI][cI];
+                                        if (!letter) return null; 
+                                        
                                         const sel = selectedCells.some(c => c.row === rI && c.col === cI) || 
                                                     (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
+                                                    
+                                        const isEmpty = letter.cellValue === ''; 
+                                        
                                         return (
-                                            <View key={cI} style={[styles.cell, { width: cellSize - 4, height: cellSize - 4 }, sel && styles.cellSelected]}>
-                                                <Text style={[styles.letterText, sel && styles.letterTextSelected]}>{letter.cellValue}</Text>
-                                            </View>
+                                            /* YENİ: Reanimated Animated.View bileşeni ve animasyon komutları eklendi! */
+                                            <Animated.View 
+                                                key={letter.id || `empty-${rI}-${cI}`} 
+                                                layout={LinearTransition.springify().damping(14).stiffness(100)} // Düşme animasyonu
+                                                entering={isEmpty ? undefined : ZoomIn.duration(300).springify()} // Büyüyerek gelme
+                                                exiting={isEmpty ? undefined : ZoomOut.duration(200)} // Patlayarak silinme
+                                                style={[
+                                                    styles.cell, 
+                                                    { width: cellSize - 4, height: cellSize - 4 }, 
+                                                    sel && styles.cellSelected,
+                                                    isEmpty && { backgroundColor: 'transparent', elevation: 0 } 
+                                                ]}
+                                            >
+                                                {!isEmpty && (
+                                                    <Text style={[styles.letterText, sel && styles.letterTextSelected]}>
+                                                        {letter.cellValue}
+                                                    </Text>
+                                                )}
+                                            </Animated.View>
                                         );
                                     })}
                                 </View>
@@ -389,7 +433,7 @@ const GameScreen = () => {
                                 onPress={() => toggleJoker(joker.id)}
                                 onLongPress={() => handleJokerInfo(joker.id)} 
                                 delayLongPress={1000} 
-                                activeOpacity={0.8}
+                                activeOpacity={isAnimating ? 1 : 0.8} 
                             >
                                 <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
                                 <View style={styles.badge}>
@@ -402,7 +446,7 @@ const GameScreen = () => {
 
                 <View style={styles.bottomPanel}>
                     <Text style={styles.currentWordText}>
-                        {selectedCells.map(c => grid[c.row][c.col].cellValue).join('')}
+                        {selectedCells.map(c => grid[c.row][c.col]?.cellValue || '').join('')}
                     </Text>
                 </View>
             </View>
@@ -419,13 +463,12 @@ const styles = StyleSheet.create({
     timerText: { fontSize: 24, fontWeight: '900', color: '#FFEB3B' },
     middleContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' }, 
     gridBoard: { padding: 10, justifyContent: 'center', alignItems: 'center' },
-    gridContainer: { justifyContent: 'center', alignItems: 'center' },
-    row: { flexDirection: 'row' },
+    gridContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+    column: { flexDirection: 'column' },
     cell: { backgroundColor: '#FFE0B2', margin: 2, justifyContent: 'center', alignItems: 'center', borderRadius: 8, elevation: 3 },
     cellSelected: { backgroundColor: '#FF5722' },
     letterText: { fontSize: 24, fontWeight: 'bold', color: '#1565C0' },
     letterTextSelected: { color: '#FFF' },
-    
     footerContainer: { width: '100%', alignItems: 'center', paddingBottom: 20 },
     jokersContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: 280, marginBottom: 10 },
     jokerButton: { width: 55, height: 55, backgroundColor: '#ffffff', borderRadius: 12, margin: 15, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, borderWidth: 3, borderColor: 'transparent' },

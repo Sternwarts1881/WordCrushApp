@@ -3,7 +3,6 @@ import { CellInformation } from "@/app/(GameScreen)/gameScreen";
 const generateLetterPool = (): string[] => {
     const pool: string[] = [];
     
-
     const highFreq = ['A', 'E', 'İ', 'L', 'R', 'N', 'K', 'T', 'I', 'M'];
     highFreq.forEach(char => { for (let i = 0; i < 6; i++) pool.push(char); });
 
@@ -23,8 +22,6 @@ export const getRandomLetter = (): string => {
     return LETTER_POOL[randomIndex];
 };
 
-
-
 export const generateGrid = (size: number, currentGrid?: CellInformation[][]): CellInformation[][] => {
     const grid: CellInformation[][] = [];
     
@@ -32,13 +29,15 @@ export const generateGrid = (size: number, currentGrid?: CellInformation[][]): C
         const newRow: CellInformation[] = [];
         for (let col = 0; col < size; col++) {
             
-            
             if (currentGrid && currentGrid[row] && currentGrid[row][col] && currentGrid[row][col].cellValue !== '') {
-                newRow.push(currentGrid[row][col]);
+                newRow.push(currentGrid[row][col]); // Eski harf ise ID'sini ve gücünü korur
             } 
-           
             else {
-                newRow.push({ cellValue: getRandomLetter(), powerUp: '' });
+                newRow.push({ 
+                    id: Math.random().toString(36).substring(7), 
+                    cellValue: getRandomLetter(), 
+                    powerUp: '' 
+                });
             }
             
         }
