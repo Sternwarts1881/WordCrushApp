@@ -426,6 +426,9 @@ const GameScreen = () => {
 
                         if (powerResult && powerResult.success) {
                             cellsToPop = powerResult.selectedCells;
+                            const powerUpWords = selectedCells.map(cell => grid[cell.row][cell.col].cellValue).join('');
+                            totalPoint = totalPoint - PointCalculator.calculateScore(word) + PointCalculator.calculateScore(powerUpWords)
+
                         }
                     }
                 });
