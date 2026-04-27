@@ -85,8 +85,6 @@ const GameScreen = () => {
 
     const [isAnimating, setIsAnimating] = useState(false);
     const [explosionParticles, setExplosionParticles] = useState<any[]>([]);
-
-   
     const [fishTargets, setFishTargets] = useState<CellPosition[]>([]);
     const [centerOverlayJoker, setCenterOverlayJoker] = useState<string | null>(null);
 
@@ -150,9 +148,8 @@ const GameScreen = () => {
             }
         }
 
-        
         if (activeJoker === 'harfKaristirma' || activeJoker === 'partiGuclendiricisi') {
-            setCenterOverlayJoker(activeJoker); 
+            setCenterOverlayJoker(activeJoker);
             
             setTimeout(async () => {
                 setCenterOverlayJoker(null); 
@@ -173,11 +170,9 @@ const GameScreen = () => {
             return;
         }
 
-        
         const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, row, col);
 
         if (result.success) {
-            
             if (activeJoker === 'balik' && result.targetedCells) {
                 setFishTargets(result.targetedCells); 
                 
@@ -198,7 +193,6 @@ const GameScreen = () => {
                 return;
             }
 
-           
             setGrid(result.newGrid);
             if (result.earnedScore && result.earnedScore > 0) {
                 setScore(prev => prev + result.earnedScore!);
@@ -220,14 +214,30 @@ const GameScreen = () => {
     }, [gridSize, turnAmount]);
 
     useEffect(() => {
-        if (grid.length > 0) {
+        if (grid.length > 0 && !isAnimating) {
             const timeoutId = setTimeout(() => {
                 const count = FindAvailableWordsCount(grid);
                 setAvailableWords(count);
-            }, 10);
+
+                if (count === 0 && isGameActive && !isGameOver) {
+                    Alert.alert(
+                        "Hamle Kalmadı!", 
+                        "Grid üzerinde hiç oluşturulabilir kelime yok! Izgara yenileniyor...",
+                        [
+                            { 
+                                text: "Tamam", 
+                                onPress: () => {
+                                    setGrid(generateGrid(gridSize));
+                                } 
+                            }
+                        ],
+                        { cancelable: false }
+                    );
+                }
+            }, 150);
             return () => clearTimeout(timeoutId);
         }
-    }, [grid]);
+    }, [grid, isAnimating, isGameActive, isGameOver, gridSize]);
 
     useEffect(() => {
         let timer: ReturnType<typeof setInterval>;
@@ -329,7 +339,6 @@ const GameScreen = () => {
         }
     };
 
-   
     const onHandlerStateChange = (event: any) => {
         if (isAnimating) return;
 
@@ -386,34 +395,34 @@ const GameScreen = () => {
                 };
 
                 const uzunluk = selectedCells.length;
+                let powerUpGrid = grid.map(row => [...row]); 
+
                 if (uzunluk >= 4) {
                     const sonHucre = selectedCells[uzunluk - 1];
                     switch (uzunluk) {
                         case 4:
-                            grid[sonHucre.row][sonHucre.col].powerUp = 'satirSilme';
+                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'satirSilme' };
                             break;
                         case 5:
-                            grid[sonHucre.row][sonHucre.col].powerUp = 'alanPatlatma';
+                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'alanPatlatma' };
                             break;
                         case 6:
-                            grid[sonHucre.row][sonHucre.col].powerUp = 'sutunSilme';
+                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'sutunSilme' };
                             break;
                         default:
-                            grid[sonHucre.row][sonHucre.col].powerUp = 'megaPatlatma';
+                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'megaPatlatma' };
                             break;
                     };
-                    selectedCells.pop();
+                    selectedCells.pop(); // Son hücreyi silinmekten kurtarıp PowerUp yapıyoruz
                 };
 
-                let powerUpGrid = grid.map(row => [...row]); 
                 let extraPowerUpScore = 0;
 
                 selectedCells.forEach(cell => {
                     const existingPowerUp = powerUpGrid[cell.row][cell.col].powerUp;
 
                     if (existingPowerUp) {
-
-                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, clonedGrid, gridSize, cell.row, cell.col);
+                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, powerUpGrid, gridSize, cell.row, cell.col);
 
                         if (powerResult && powerResult.success) {
                             powerUpGrid = powerResult.newGrid; 
@@ -421,9 +430,6 @@ const GameScreen = () => {
                             if (powerResult.earnedScore) {
                                 extraPowerUpScore += powerResult.earnedScore;
                             }
-
-                            powerUpGrid[cell.row][cell.col].powerUp = '';
-                            setGrid(powerUpGrid);
                         }
                     }
                 });
@@ -452,8 +458,7 @@ const GameScreen = () => {
 
                 setExplosionParticles(prev => [...prev, ...newParticles]); 
 
-                const clonedGrid = grid.map(row => [...row]);
-                const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
+                const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, powerUpGrid, gridSize);
 
                 setGrid(gridAfterRemoval);
 
@@ -507,7 +512,6 @@ const GameScreen = () => {
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
                         <View style={[styles.gridContainer, { position: 'relative' }]}>
 
-                           
                             {centerOverlayJoker && (
                                 <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', zIndex: 100, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 15 }]}>
                                     <Animated.Image
@@ -544,7 +548,6 @@ const GameScreen = () => {
 
                                         const isEmpty = letter.cellValue === '';
                                         
-                                        
                                         const isFishTarget = fishTargets.some(t => t.row === rI && t.col === cI);
 
                                         return (
@@ -574,7 +577,6 @@ const GameScreen = () => {
                                                             </View>
                                                         ) : null}
 
-                                                        
                                                         {isFishTarget && (
                                                             <Animated.Image 
                                                                 source={require('@/assets/images/jokers/balik.png')} 
