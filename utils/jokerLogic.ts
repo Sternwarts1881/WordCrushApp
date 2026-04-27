@@ -7,7 +7,7 @@ export const JokerLogic = {
     executeJoker: function(jokerId: string, grid: CellInformation[][], gridSize: number, row?: number, col?: number, targetRow?: number, targetCol?: number) {
         let clonedGrid = grid.map(r => [...r]);
         let cellsToRemove: CellPosition[] = [];
-        let earnedScore = 0; // YENİ: Jokerden kazanılacak puan
+        let earnedScore = 0;
 
         switch(jokerId) {
             case 'serbestDegistirme':
@@ -28,31 +28,23 @@ export const JokerLogic = {
                 break;
                 
             case 'balik':
-                // YENİ: Balık artık ana harfi ve rastgele 2 komşusunu yutuyor!
-                if (row !== undefined && col !== undefined) {
-                    cellsToRemove.push({row, col}); // Hedef harf
-                    
-                    let neighbors: CellPosition[] = [];
-                    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
-                    
-                    for (let [dx, dy] of directions) {
-                        const nRow = row + dx;
-                        const nCol = col + dy;
-                        if (nRow >= 0 && nRow < gridSize && nCol >= 0 && nCol < gridSize) {
-                            neighbors.push({row: nRow, col: nCol});
-                        }
+                let allCellsForFish: CellPosition[] = [];
+                for (let r = 0; r < gridSize; r++) {
+                    for (let c = 0; c < gridSize; c++) {
+                        allCellsForFish.push({row: r, col: c});
                     }
-                    
-                    // Komşuları karıştır ve 2 tanesini seç
-                    neighbors = neighbors.sort(() => Math.random() - 0.5).slice(0, 2);
-                    cellsToRemove.push(...neighbors);
                 }
+                allCellsForFish = allCellsForFish.sort(() => Math.random() - 0.5).slice(0, 3);
+                cellsToRemove.push(...allCellsForFish);
                 break;
                 
             case 'tekerlek':
-                if (row !== undefined) {
-                    for (let c = 0; c < gridSize; c++) {
-                        cellsToRemove.push({row, col: c});
+                if (row !== undefined && col !== undefined) {
+                    for (let i = 0; i < gridSize; i++) {
+                        cellsToRemove.push({row: row, col: i}); 
+                        if (i !== row) {
+                            cellsToRemove.push({row: i, col: col}); 
+                        }
                     }
                 }
                 break;
@@ -70,11 +62,10 @@ export const JokerLogic = {
                 return { success: true, newGrid: shuffledGrid, earnedScore: 0 };
 
             case 'partiGuclendiricisi':
-                for(let i = 0; i < 5; i++){
-                    cellsToRemove.push({
-                        row: Math.floor(Math.random() * gridSize),
-                        col: Math.floor(Math.random() * gridSize)
-                    });
+                for(let r = 0; r < gridSize; r++){
+                    for(let c = 0; c < gridSize; c++){
+                        cellsToRemove.push({row: r, col: c});
+                    }
                 }
                 break;
                 
@@ -83,18 +74,20 @@ export const JokerLogic = {
         }
 
         if (cellsToRemove.length > 0) {
-            // YENİ: Harfler silinmeden önce puanlarını arkadaşının hesaplayıcısıyla topluyoruz
+            const uniqueCells = cellsToRemove.filter((v, i, a) => a.findIndex(t => (t.row === v.row && t.col === v.col)) === i);
+
             let destroyedWord = "";
-            cellsToRemove.forEach(cell => {
+            uniqueCells.forEach(cell => {
                 destroyedWord += clonedGrid[cell.row][cell.col].cellValue;
             });
             earnedScore = PointCalculator.calculateScore(destroyedWord);
 
-            clonedGrid = CellRemover.handleCellRemoval(cellsToRemove, clonedGrid, gridSize);
+            clonedGrid = CellRemover.handleCellRemoval(uniqueCells, clonedGrid, gridSize);
             clonedGrid = generateGrid(gridSize, clonedGrid);
             
             console.log(`[JOKER] ${jokerId} kullanıldı. Kazanılan Puan: ${earnedScore}. Yeni Grid: `, clonedGrid);
-            return { success: true, newGrid: clonedGrid, earnedScore };
+            
+            return { success: true, newGrid: clonedGrid, earnedScore, targetedCells: uniqueCells };
         }
 
         return { success: false, newGrid: grid, earnedScore: 0 };

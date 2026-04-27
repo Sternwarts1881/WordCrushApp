@@ -17,10 +17,9 @@ import { generateGrid } from '@/utils/gridGenerator';
 import { JokerLogic } from '@/utils/jokerLogic';
 import { PointCalculator } from '@/utils/pointCalculator';
 import { CellRemover } from '@/utils/popCells';
-import { FindAvailableWordsCount } from '@/utils/wordFinder';
 import { PowerUpLogic } from '@/utils/powerUp';
+import { FindAvailableWordsCount } from '@/utils/wordFinder';
 
-// YENİ: Ana dizindeki patlama efekti dosyamızı çağırıyoruz!
 import ExplosionParticle from '@/ExplosionParticle';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -85,9 +84,11 @@ const GameScreen = () => {
     const [swapFirstCell, setSwapFirstCell] = useState<CellPosition | null>(null);
 
     const [isAnimating, setIsAnimating] = useState(false);
-
-    // YENİ: Patlama parçacıklarını tutacağımız state
     const [explosionParticles, setExplosionParticles] = useState<any[]>([]);
+
+   
+    const [fishTargets, setFishTargets] = useState<CellPosition[]>([]);
+    const [centerOverlayJoker, setCenterOverlayJoker] = useState<string | null>(null);
 
     useEffect(() => {
         const loadInventory = async () => {
@@ -149,15 +150,59 @@ const GameScreen = () => {
             }
         }
 
+        
+        if (activeJoker === 'harfKaristirma' || activeJoker === 'partiGuclendiricisi') {
+            setCenterOverlayJoker(activeJoker); 
+            
+            setTimeout(async () => {
+                setCenterOverlayJoker(null); 
+                
+                const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, row, col);
+                if (result.success) {
+                    setGrid(result.newGrid);
+                    if (result.earnedScore && result.earnedScore > 0) {
+                        setScore(prev => prev + result.earnedScore!);
+                    }
+                    const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
+                    setInventory(updatedInventory);
+                    await BoughtJokersStorage.updateJokers(updatedInventory);
+                }
+                setActiveJoker(null);
+                setTimeout(() => setIsAnimating(false), 400);
+            }, 1000); 
+            return;
+        }
+
+        
         const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, row, col);
 
         if (result.success) {
-            setGrid(result.newGrid);
+            
+            if (activeJoker === 'balik' && result.targetedCells) {
+                setFishTargets(result.targetedCells); 
+                
+                setTimeout(async () => {
+                    setFishTargets([]); 
+                    
+                    setGrid(result.newGrid);
+                    if (result.earnedScore && result.earnedScore > 0) {
+                        setScore(prev => prev + result.earnedScore!);
+                    }
+                    const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
+                    setInventory(updatedInventory);
+                    await BoughtJokersStorage.updateJokers(updatedInventory);
+                    
+                    setActiveJoker(null);
+                    setTimeout(() => setIsAnimating(false), 400);
+                }, 500); 
+                return;
+            }
 
+           
+            setGrid(result.newGrid);
             if (result.earnedScore && result.earnedScore > 0) {
                 setScore(prev => prev + result.earnedScore!);
             }
-
             const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
             setInventory(updatedInventory);
             await BoughtJokersStorage.updateJokers(updatedInventory);
@@ -284,6 +329,7 @@ const GameScreen = () => {
         }
     };
 
+   
     const onHandlerStateChange = (event: any) => {
         if (isAnimating) return;
 
@@ -382,42 +428,35 @@ const GameScreen = () => {
                     }
                 });
 
-                // Eğer PowerUp'lardan ekstra puan geldiyse skora ekle
                 if (extraPowerUpScore > 0) {
                     setScore(prev => prev + extraPowerUpScore);
                 }
 
-                // YENİ: PATLAMA EFEKTİ İÇİN PARÇACIKLARI ÜRETİYORUZ!
                 const newParticles: any[] = [];
-                const colors = ['#FF5722', '#FFEB3B', '#FFC107', '#FFFFFF']; // Ateş rengi tonları
+                const colors = ['#FF5722', '#FFEB3B', '#FFC107', '#FFFFFF']; 
 
                 selectedCells.forEach((cell) => {
-                    // Hücrenin tam orta noktasını hesaplıyoruz
                     const centerX = cell.col * cellSize + cellSize / 2;
                     const centerY = cell.row * cellSize + cellSize / 2;
 
-                    // Her bir harf için 8 tane sağa sola fırlayacak parçacık oluşturuyoruz
                     for (let i = 0; i < 8; i++) {
                         newParticles.push({
                             id: Math.random().toString(),
                             x: centerX,
                             y: centerY,
                             color: colors[Math.floor(Math.random() * colors.length)],
-                            size: cellSize / 4, // Hücrenin 4'te 1'i büyüklüğünde
+                            size: cellSize / 4, 
                         });
                     }
                 });
 
-                setExplosionParticles(prev => [...prev, ...newParticles]); // Parçacıkları ekrana bas
+                setExplosionParticles(prev => [...prev, ...newParticles]); 
 
-
-                // 1. AŞAMA: Harfleri Sil
                 const clonedGrid = grid.map(row => [...row]);
                 const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, clonedGrid, gridSize);
 
                 setGrid(gridAfterRemoval);
 
-                // 2. AŞAMA: 400ms sonra (hem parçacıklar kaybolurken hem harfler düşerken) yenileri getir
                 setTimeout(() => {
                     const refilledGrid = generateGrid(gridSize, gridAfterRemoval);
                     setGrid(refilledGrid);
@@ -466,10 +505,21 @@ const GameScreen = () => {
             <View style={styles.middleContainer}>
                 <GestureHandlerRootView style={styles.gridBoard}>
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
-                        {/* Koordinatların doğru oturması için ana kaba position: 'relative' eklendi */}
                         <View style={[styles.gridContainer, { position: 'relative' }]}>
 
-                            {/* YENİ: Parçacıkları gridin ÜZERİNDE render ediyoruz */}
+                           
+                            {centerOverlayJoker && (
+                                <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', zIndex: 100, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 15 }]}>
+                                    <Animated.Image
+                                        source={JOKER_LIST.find(j => j.id === centerOverlayJoker)?.image}
+                                        entering={ZoomIn.duration(400).springify()}
+                                        exiting={ZoomOut.duration(300)}
+                                        style={{ width: 160, height: 160 }}
+                                        resizeMode="contain"
+                                    />
+                                </View>
+                            )}
+
                             {explosionParticles.map(p => (
                                 <ExplosionParticle
                                     key={p.id}
@@ -478,7 +528,6 @@ const GameScreen = () => {
                                     color={p.color}
                                     size={p.size}
                                     onComplete={() => {
-                                        // Animasyon bitince parçacığı hafızadan temizle ki performansı yormasın
                                         setExplosionParticles(prev => prev.filter(particle => particle.id !== p.id));
                                     }}
                                 />
@@ -494,6 +543,9 @@ const GameScreen = () => {
                                             (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
 
                                         const isEmpty = letter.cellValue === '';
+                                        
+                                        
+                                        const isFishTarget = fishTargets.some(t => t.row === rI && t.col === cI);
 
                                         return (
                                             <Animated.View
@@ -514,7 +566,6 @@ const GameScreen = () => {
                                                             {letter.cellValue}
                                                         </Text>
 
-                                                        {/* YENİ: PowerUp varsa köşede simgesini gösteriyoruz */}
                                                         {letter.powerUp ? (
                                                             <View style={styles.powerUpBadge}>
                                                                 <Text style={styles.powerUpText}>
@@ -522,6 +573,16 @@ const GameScreen = () => {
                                                                 </Text>
                                                             </View>
                                                         ) : null}
+
+                                                        
+                                                        {isFishTarget && (
+                                                            <Animated.Image 
+                                                                source={require('@/assets/images/jokers/balik.png')} 
+                                                                entering={ZoomIn.duration(200).springify()}
+                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }} 
+                                                                resizeMode="contain" 
+                                                            />
+                                                        )}
                                                     </>
                                                 )}
                                             </Animated.View>
