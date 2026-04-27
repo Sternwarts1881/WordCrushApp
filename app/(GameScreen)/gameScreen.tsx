@@ -59,7 +59,7 @@ const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
     'balik': { title: 'Joker: Balık', desc: 'Seçtiğiniz bir harfi ve rastgele 2 komşusunu yutarak yok eder. Patlayan harfler puan kazandırır!' },
     'tekerlek': { title: 'Joker: Tekerlek', desc: 'Seçtiğiniz bir satırı tamamen yeniler ve patlayan harflerin puanını size kazandırır.' },
     'lolipop': { title: 'Joker: Lolipop', desc: 'İstediğiniz bir harfi patlatarak puanını hanenize yazdırır.' },
-    'serbestDegistirme': { title: 'Joker: Serbest Değiştirme', desc: 'Herhangi iki harfin yerini hamle harcamadan değiştirmenizi sağlar.' },
+    'serbestDegistirme': { title: 'Joker: Serbest Değiştirme', desc: 'Sadece birbirine temas eden iki harfin yerini hamle harcamadan değiştirmenizi sağlar.' },
     'harfKaristirma': { title: 'Joker: Harf Karıştırma', desc: 'Tüm harflerin yerlerini rastgele karıştırarak yeni fırsatlar yaratır.' },
     'partiGuclendiricisi': { title: 'Joker: Parti Güçlendiricisi', desc: 'Rastgele 5 harfi patlatarak büyük bir puan ve alan avantajı sağlar.' }
 };
@@ -134,6 +134,17 @@ const GameScreen = () => {
                 setIsAnimating(false);
                 return;
             } else {
+               
+                const isAdjacent = Math.abs(swapFirstCell.row - row!) <= 1 && Math.abs(swapFirstCell.col - col!) <= 1;
+                const isSameCell = swapFirstCell.row === row! && swapFirstCell.col === col!; 
+                if (!isAdjacent || isSameCell) {
+                    Alert.alert("Geçersiz Hamle", "Sadece birbirine temas eden harfler yer değiştirilebilir!");
+                    setSwapFirstCell(null); 
+                    setIsAnimating(false);
+                    return; 
+                }
+
+               
                 const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, swapFirstCell.row, swapFirstCell.col, row, col);
                 if (result.success) {
                     setGrid(result.newGrid);
@@ -413,7 +424,7 @@ const GameScreen = () => {
                             powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'megaPatlatma' };
                             break;
                     };
-                    selectedCells.pop(); // Son hücreyi silinmekten kurtarıp PowerUp yapıyoruz
+                    selectedCells.pop(); 
                 };
 
                 let extraPowerUpScore = 0;
