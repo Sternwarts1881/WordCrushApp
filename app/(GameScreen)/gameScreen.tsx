@@ -418,6 +418,7 @@ const GameScreen = () => {
                     totalPoint = PointCalculator.calculateScore(word);
                 }
 
+                const initialCellsToPop = [...cellsToPop];
                 cellsToPop.forEach(cell => {
                     const existingPowerUp = grid[cell.row][cell.col].powerUp;
 
@@ -426,12 +427,16 @@ const GameScreen = () => {
 
                         if (powerResult && powerResult.success) {
                             cellsToPop = powerResult.selectedCells;
-                            const powerUpWords = selectedCells.map(cell => grid[cell.row][cell.col].cellValue).join('');
-                            totalPoint = totalPoint - PointCalculator.calculateScore(word) + PointCalculator.calculateScore(powerUpWords)
-
                         }
                     }
                 });
+                const newlyAddedCells = cellsToPop.filter(
+                    newCell => !initialCellsToPop.some(initialCell => initialCell.row === newCell.row && initialCell.col === newCell.col)
+                );
+                if (newlyAddedCells.length > 0) {
+                    const powerUpExtraLetters = newlyAddedCells.map(c => grid[c.row][c.col].cellValue).join('');
+                    totalPoint += PointCalculator.calculateScore(powerUpExtraLetters);
+                }
 
                 setScore(prev => prev + totalPoint);
                 setPoppedAmount(prev => prev + 1);
