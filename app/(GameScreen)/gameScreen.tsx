@@ -87,6 +87,7 @@ const GameScreen = () => {
     const [explosionParticles, setExplosionParticles] = useState<any[]>([]);
     const [fishTargets, setFishTargets] = useState<CellPosition[]>([]);
     const [centerOverlayJoker, setCenterOverlayJoker] = useState<string | null>(null);
+    const [debugPowerUp, setDebugPowerUp] = useState<string | null>(null);
 
     useEffect(() => {
         const loadInventory = async () => {
@@ -359,6 +360,17 @@ const GameScreen = () => {
             const row = Math.floor(y / cellSize);
 
             if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
+
+                // --- EKLENEN DEBUG KONTROLÜ BAŞLANGICI ---
+                if (debugPowerUp) {
+                    const newGrid = [...grid];
+                    newGrid[row][col] = { ...newGrid[row][col], powerUp: debugPowerUp };
+                    setGrid(newGrid);
+                    setDebugPowerUp(null); // Ekledikten sonra debug modunu kapatır
+                    return;
+                }
+                // --- EKLENEN DEBUG KONTROLÜ BİTİŞİ ---
+
                 if (activeJoker) {
                     handleJokerAction(row, col);
                     return;
@@ -506,7 +518,27 @@ const GameScreen = () => {
                     <Text style={styles.timerText}>⏱ {formatTime(timeElapsed)}</Text>
                 </View>
             </View>
-
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 5, gap: 5 }}>
+                <Text style={{ color: '#FFF', fontWeight: 'bold', width: '100%', textAlign: 'center', marginBottom: 5 }}>
+                    DEBUG: Eklenecek Power-Up Seç
+                </Text>
+                {POWERUP_LIST.map(p => (
+                    <TouchableOpacity
+                        key={`debug-${p.id}`}
+                        style={{
+                            backgroundColor: debugPowerUp === p.id ? '#FF5722' : '#555',
+                            paddingHorizontal: 10,
+                            paddingVertical: 5,
+                            borderRadius: 5,
+                            borderWidth: 1,
+                            borderColor: debugPowerUp === p.id ? '#FFF' : 'transparent'
+                        }}
+                        onPress={() => setDebugPowerUp(debugPowerUp === p.id ? null : p.id)}
+                    >
+                        <Text style={{ color: '#FFF', fontSize: 12 }}>{p.logo} {p.id}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
             <View style={styles.middleContainer}>
                 <GestureHandlerRootView style={styles.gridBoard}>
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
