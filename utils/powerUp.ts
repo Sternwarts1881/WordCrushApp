@@ -4,7 +4,7 @@ import { PointCalculator } from "./pointCalculator";
 import { CellRemover } from "./popCells";
 
 export const PowerUpLogic = {
-    executePowerUp: function (powerUpId: string, grid: CellInformation[][], gridSize: number, row?: number, col?: number, targetRow?: number, targetCol?: number) {
+    executePowerUp: function (powerUpId: string, grid: CellInformation[][], gridSize: number, selectedCells: CellPosition[], row?: number, col?: number) {
         let clonedGrid = grid.map(r => [...r]);
         let cellsToRemove: CellPosition[] = [];
         let earnedScore = 0;
@@ -37,7 +37,7 @@ export const PowerUpLogic = {
                 }
                 break;
 
-            case 'megaPatlama':
+            case 'megaPatlatma':
                 if (row !== undefined && col !== undefined) {
                     for (let r = Math.max(0, row - 2); r <= Math.min(gridSize - 1, row + 2); r++) {
                         for (let c = Math.max(0, col - 2); c <= Math.min(gridSize - 1, col + 2); c++) {
@@ -47,23 +47,20 @@ export const PowerUpLogic = {
                 }
                 break;
             default:
-                return { success: false, newGrid: grid, earnedScore: 0 };
+                return { success: false, selectedCells };
         }
 
         if (cellsToRemove.length > 0) {
-            let destroyedWord = "";
-            cellsToRemove.forEach(cell => {
-                destroyedWord += clonedGrid[cell.row][cell.col].cellValue;
-            });
-            earnedScore = PointCalculator.calculateScore(destroyedWord);
+            const combinedCells = [...selectedCells, ...cellsToRemove];
 
-            clonedGrid = CellRemover.handleCellRemoval(cellsToRemove, clonedGrid, gridSize);
-            clonedGrid = generateGrid(gridSize, clonedGrid);
+            const updatedSelectedCells = combinedCells.filter((cell, index, self) =>
+                index === self.findIndex((c) => c.row === cell.row && c.col === cell.col)
+            );
 
-            console.log(`[JOKER] ${powerUpId} kullanıldı. Kazanılan Puan: ${earnedScore}. Yeni Grid: `, clonedGrid);
-            return { success: true, newGrid: clonedGrid, earnedScore };
+            console.log(`[JOKER] ${powerUpId} kullanıldı. Mükerrer hücreler filtrelenerek selectedCells'e eklendi.`);
+            return { success: true, selectedCells: updatedSelectedCells };
         }
 
-        return { success: false, newGrid: grid, earnedScore: 0 };
+        return { success: false, selectedCells };
     }
 }

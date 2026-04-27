@@ -134,17 +134,17 @@ const GameScreen = () => {
                 setIsAnimating(false);
                 return;
             } else {
-               
+
                 const isAdjacent = Math.abs(swapFirstCell.row - row!) <= 1 && Math.abs(swapFirstCell.col - col!) <= 1;
-                const isSameCell = swapFirstCell.row === row! && swapFirstCell.col === col!; 
+                const isSameCell = swapFirstCell.row === row! && swapFirstCell.col === col!;
                 if (!isAdjacent || isSameCell) {
                     Alert.alert("Geçersiz Hamle", "Sadece birbirine temas eden harfler yer değiştirilebilir!");
-                    setSwapFirstCell(null); 
+                    setSwapFirstCell(null);
                     setIsAnimating(false);
-                    return; 
+                    return;
                 }
 
-               
+
                 const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, swapFirstCell.row, swapFirstCell.col, row, col);
                 if (result.success) {
                     setGrid(result.newGrid);
@@ -161,10 +161,10 @@ const GameScreen = () => {
 
         if (activeJoker === 'harfKaristirma' || activeJoker === 'partiGuclendiricisi') {
             setCenterOverlayJoker(activeJoker);
-            
+
             setTimeout(async () => {
-                setCenterOverlayJoker(null); 
-                
+                setCenterOverlayJoker(null);
+
                 const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, row, col);
                 if (result.success) {
                     setGrid(result.newGrid);
@@ -177,7 +177,7 @@ const GameScreen = () => {
                 }
                 setActiveJoker(null);
                 setTimeout(() => setIsAnimating(false), 400);
-            }, 1000); 
+            }, 1000);
             return;
         }
 
@@ -185,11 +185,11 @@ const GameScreen = () => {
 
         if (result.success) {
             if (activeJoker === 'balik' && result.targetedCells) {
-                setFishTargets(result.targetedCells); 
-                
+                setFishTargets(result.targetedCells);
+
                 setTimeout(async () => {
-                    setFishTargets([]); 
-                    
+                    setFishTargets([]);
+
                     setGrid(result.newGrid);
                     if (result.earnedScore && result.earnedScore > 0) {
                         setScore(prev => prev + result.earnedScore!);
@@ -197,10 +197,10 @@ const GameScreen = () => {
                     const updatedInventory = { ...inventory, [activeJoker]: currentCount - 1 };
                     setInventory(updatedInventory);
                     await BoughtJokersStorage.updateJokers(updatedInventory);
-                    
+
                     setActiveJoker(null);
                     setTimeout(() => setIsAnimating(false), 400);
-                }, 500); 
+                }, 500);
                 return;
             }
 
@@ -232,14 +232,14 @@ const GameScreen = () => {
 
                 if (count === 0 && isGameActive && !isGameOver) {
                     Alert.alert(
-                        "Hamle Kalmadı!", 
+                        "Hamle Kalmadı!",
                         "Grid üzerinde hiç oluşturulabilir kelime yok! Izgara yenileniyor...",
                         [
-                            { 
-                                text: "Tamam", 
+                            {
+                                text: "Tamam",
                                 onPress: () => {
                                     setGrid(generateGrid(gridSize));
-                                } 
+                                }
                             }
                         ],
                         { cancelable: false }
@@ -382,8 +382,28 @@ const GameScreen = () => {
 
                 let totalPoint = 0;
                 let alertMessage = `Oluşturduğunuz kelime: ${word}`;
+                let cellsToPop = [...selectedCells];
 
                 if (word.length > 3) {
+                    const uzunluk = selectedCells.length;
+                    const sonHucre = selectedCells[uzunluk - 1];
+                    switch (uzunluk) {
+                        case 4:
+                            grid[sonHucre.row][sonHucre.col] = { ...grid[sonHucre.row][sonHucre.col], powerUp: 'satirSilme' };
+                            break;
+                        case 5:
+                            grid[sonHucre.row][sonHucre.col] = { ...grid[sonHucre.row][sonHucre.col], powerUp: 'alanPatlatma' };
+                            break;
+                        case 6:
+                            grid[sonHucre.row][sonHucre.col] = { ...grid[sonHucre.row][sonHucre.col], powerUp: 'sutunSilme' };
+                            break;
+                        default:
+                            grid[sonHucre.row][sonHucre.col] = { ...grid[sonHucre.row][sonHucre.col], powerUp: 'megaPatlatma' };
+                            break;
+                    };
+                    cellsToPop.pop();
+                    setGrid([...grid]);
+
                     const comboCheckResult = ComboChecker.checkCombo(word);
 
                     if (comboCheckResult.length > 1) {
@@ -398,6 +418,18 @@ const GameScreen = () => {
                     totalPoint = PointCalculator.calculateScore(word);
                 }
 
+                cellsToPop.forEach(cell => {
+                    const existingPowerUp = grid[cell.row][cell.col].powerUp;
+
+                    if (existingPowerUp) {
+                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, grid, gridSize, cellsToPop, cell.row, cell.col);
+
+                        if (powerResult && powerResult.success) {
+                            cellsToPop = powerResult.selectedCells;
+                        }
+                    }
+                });
+
                 setScore(prev => prev + totalPoint);
                 setPoppedAmount(prev => prev + 1);
 
@@ -405,54 +437,10 @@ const GameScreen = () => {
                     setLongestWord(word);
                 };
 
-                const uzunluk = selectedCells.length;
-                let powerUpGrid = grid.map(row => [...row]); 
-
-                if (uzunluk >= 4) {
-                    const sonHucre = selectedCells[uzunluk - 1];
-                    switch (uzunluk) {
-                        case 4:
-                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'satirSilme' };
-                            break;
-                        case 5:
-                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'alanPatlatma' };
-                            break;
-                        case 6:
-                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'sutunSilme' };
-                            break;
-                        default:
-                            powerUpGrid[sonHucre.row][sonHucre.col] = { ...powerUpGrid[sonHucre.row][sonHucre.col], powerUp: 'megaPatlatma' };
-                            break;
-                    };
-                    selectedCells.pop(); 
-                };
-
-                let extraPowerUpScore = 0;
-
-                selectedCells.forEach(cell => {
-                    const existingPowerUp = powerUpGrid[cell.row][cell.col].powerUp;
-
-                    if (existingPowerUp) {
-                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, powerUpGrid, gridSize, cell.row, cell.col);
-
-                        if (powerResult && powerResult.success) {
-                            powerUpGrid = powerResult.newGrid; 
-
-                            if (powerResult.earnedScore) {
-                                extraPowerUpScore += powerResult.earnedScore;
-                            }
-                        }
-                    }
-                });
-
-                if (extraPowerUpScore > 0) {
-                    setScore(prev => prev + extraPowerUpScore);
-                }
-
                 const newParticles: any[] = [];
-                const colors = ['#FF5722', '#FFEB3B', '#FFC107', '#FFFFFF']; 
+                const colors = ['#FF5722', '#FFEB3B', '#FFC107', '#FFFFFF'];
 
-                selectedCells.forEach((cell) => {
+                cellsToPop.forEach((cell) => {
                     const centerX = cell.col * cellSize + cellSize / 2;
                     const centerY = cell.row * cellSize + cellSize / 2;
 
@@ -462,14 +450,14 @@ const GameScreen = () => {
                             x: centerX,
                             y: centerY,
                             color: colors[Math.floor(Math.random() * colors.length)],
-                            size: cellSize / 4, 
+                            size: cellSize / 4,
                         });
                     }
                 });
 
-                setExplosionParticles(prev => [...prev, ...newParticles]); 
+                setExplosionParticles(prev => [...prev, ...newParticles]);
 
-                const gridAfterRemoval = CellRemover.handleCellRemoval(selectedCells, powerUpGrid, gridSize);
+                const gridAfterRemoval = CellRemover.handleCellRemoval(cellsToPop, grid, gridSize);
 
                 setGrid(gridAfterRemoval);
 
@@ -478,6 +466,7 @@ const GameScreen = () => {
                     setGrid(refilledGrid);
                     setIsAnimating(false);
                 }, 400);
+
 
             } else {
                 Alert.alert("Oluşturduğunuz Kelime Sözlükte Yok!", `Oluşturduğunuz kelime: ${word}`);
@@ -558,7 +547,7 @@ const GameScreen = () => {
                                             (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
 
                                         const isEmpty = letter.cellValue === '';
-                                        
+
                                         const isFishTarget = fishTargets.some(t => t.row === rI && t.col === cI);
 
                                         return (
@@ -589,11 +578,11 @@ const GameScreen = () => {
                                                         ) : null}
 
                                                         {isFishTarget && (
-                                                            <Animated.Image 
-                                                                source={require('@/assets/images/jokers/balik.png')} 
+                                                            <Animated.Image
+                                                                source={require('@/assets/images/jokers/balik.png')}
                                                                 entering={ZoomIn.duration(200).springify()}
-                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }} 
-                                                                resizeMode="contain" 
+                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }}
+                                                                resizeMode="contain"
                                                             />
                                                         )}
                                                     </>
