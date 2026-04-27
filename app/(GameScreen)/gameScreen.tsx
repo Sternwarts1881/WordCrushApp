@@ -49,9 +49,9 @@ const JOKER_LIST = [
 ];
 
 const POWERUP_LIST = [
-    { id: 'sutunSilme', logo: '⇆' },
-    { id: 'satirSilme', logo: '✹' },
-    { id: 'alanPatlatma', logo: '⇅' },
+    { id: 'satirSilme', logo: '⇆' },
+    { id: 'alanPatlatma', logo: '✹' },
+    { id: 'sutunSilme', logo: '⇅' },
     { id: 'megaPatlatma', logo: '✪' }
 ];
 
