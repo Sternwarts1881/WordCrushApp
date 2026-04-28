@@ -341,13 +341,29 @@ const GameScreen = () => {
 
         if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return;
 
-        const isAlreadySelected = selectedCells.some(cell => cell.row === row && cell.col === col);
-        if (isAlreadySelected || selectedCells.length === 0) return;
+        const centerX = (col * cellSize) + (cellSize / 2);
+        const centerY = (row * cellSize) + (cellSize / 2);
 
-        const lastCell = selectedCells[selectedCells.length - 1];
-        if (Math.abs(lastCell.row - row) <= 1 && Math.abs(lastCell.col - col) <= 1) {
-            setSelectedCells(prev => [...prev, { row, col }]);
+        const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+
+        const hitRadius = cellSize * 0.45;
+
+        if (distanceToCenter > hitRadius) {
+            return;
         }
+        setSelectedCells(prev => {
+            if (prev.length === 0) return prev;
+
+            const isAlreadySelected = prev.some(cell => cell.row === row && cell.col === col);
+            if (isAlreadySelected) return prev;
+
+            const lastCell = prev[prev.length - 1];
+            if (Math.abs(lastCell.row - row) <= 1 && Math.abs(lastCell.col - col) <= 1) {
+                return [...prev, { row, col }];
+            }
+
+            return prev;
+        });
     };
 
     const onHandlerStateChange = (event: any) => {
