@@ -144,7 +144,6 @@ const GameScreen = () => {
                     return;
                 }
 
-
                 const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, swapFirstCell.row, swapFirstCell.col, row, col);
                 if (result.success) {
                     setGrid(result.newGrid);
@@ -397,7 +396,7 @@ const GameScreen = () => {
                 setIsAnimating(true);
 
                 let totalPoint = 0;
-                let alertMessage = `Oluşturduğunuz kelime: ${word}`;
+                let alertMessage = ``; 
                 let cellsToPop = [...selectedCells];
 
                 if (word.length > 3) {
@@ -423,16 +422,26 @@ const GameScreen = () => {
                     const comboCheckResult = ComboChecker.checkCombo(word);
 
                     if (comboCheckResult.length > 1) {
-                        alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
+                       
+                        const extraWords = comboCheckResult.filter(w => w !== word);
+                        const orderedComboWords = [word, ...extraWords];
+
+                        alertMessage = `Ana Kelime: ${word}\n\n ${comboCheckResult.length}X KOMBO! \nİç Kelimeler: ${orderedComboWords.join(', ')}`;
+                        
                         for (const subWord of comboCheckResult) {
                             totalPoint += PointCalculator.calculateScore(subWord);
                         }
                     } else {
+                        alertMessage = `Oluşturduğunuz kelime: ${word}`;
                         totalPoint = PointCalculator.calculateScore(word);
                     }
                 } else {
+                    alertMessage = `Oluşturduğunuz kelime: ${word}`;
                     totalPoint = PointCalculator.calculateScore(word);
                 }
+                
+                // Mesajı Ekrana Bas
+                Alert.alert("Kelime Oluşturuldu!", alertMessage);
 
                 const initialCellsToPop = [...cellsToPop];
                 cellsToPop.forEach(cell => {
@@ -571,7 +580,7 @@ const GameScreen = () => {
                                             (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
 
                                         const isEmpty = letter.cellValue === '';
-
+                                        
                                         const isFishTarget = fishTargets.some(t => t.row === rI && t.col === cI);
 
                                         return (
@@ -602,11 +611,11 @@ const GameScreen = () => {
                                                         ) : null}
 
                                                         {isFishTarget && (
-                                                            <Animated.Image
-                                                                source={require('@/assets/images/jokers/balik.png')}
+                                                            <Animated.Image 
+                                                                source={require('@/assets/images/jokers/balik.png')} 
                                                                 entering={ZoomIn.duration(200).springify()}
-                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }}
-                                                                resizeMode="contain"
+                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }} 
+                                                                resizeMode="contain" 
                                                             />
                                                         )}
                                                     </>
