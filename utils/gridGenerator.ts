@@ -2,14 +2,14 @@ import { CellInformation } from "@/app/(GameScreen)/gameScreen";
 
 const generateLetterPool = (): string[] => {
     const pool: string[] = [];
-    
-    const highFreq = ['A', 'E', 'İ', 'L', 'R', 'N', 'K', 'T', 'I', 'M'];
+
+    const highFreq = ['A', 'E', 'İ', 'L', 'R', 'N', 'I'];
     highFreq.forEach(char => { for (let i = 0; i < 6; i++) pool.push(char); });
 
-    const medFreq = ['O', 'S', 'U', 'B', 'D', 'Ü', 'Y', 'Ş', 'Z', 'Ç'];
+    const medFreq = ['K', 'M', 'T', 'S', 'Y', 'D', 'U', 'B', 'O', 'Ü', 'Ş'];
     medFreq.forEach(char => { for (let i = 0; i < 3; i++) pool.push(char); });
 
-    const lowFreq = ['C', 'H', 'G', 'P', 'V', 'Ö', 'F', 'Ğ', 'J'];
+    const lowFreq = ['V', 'F', 'Ğ', 'J', 'Z', 'G', 'Ç', 'H', 'C', 'Ö', 'P'];
     lowFreq.forEach(char => { for (let i = 0; i < 1; i++) pool.push(char); });
 
     return pool;
@@ -24,22 +24,22 @@ export const getRandomLetter = (): string => {
 
 export const generateGrid = (size: number, currentGrid?: CellInformation[][]): CellInformation[][] => {
     const grid: CellInformation[][] = [];
-    
+
     for (let row = 0; row < size; row++) {
         const newRow: CellInformation[] = [];
         for (let col = 0; col < size; col++) {
-            
+
             if (currentGrid && currentGrid[row] && currentGrid[row][col] && currentGrid[row][col].cellValue !== '') {
-                newRow.push(currentGrid[row][col]); 
-            } 
+                newRow.push(currentGrid[row][col]);
+            }
             else {
-                newRow.push({ 
-                    id: Math.random().toString(36).substring(7), 
-                    cellValue: getRandomLetter(), 
-                    powerUp: '' 
+                newRow.push({
+                    id: Math.random().toString(36).substring(7),
+                    cellValue: getRandomLetter(),
+                    powerUp: ''
                 });
             }
-            
+
         }
         grid.push(newRow);
     }
