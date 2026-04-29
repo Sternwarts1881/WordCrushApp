@@ -67,7 +67,7 @@ const Marketplace = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {JOKER_LIST.map((joker) => (
           <View key={joker.id} style={styles.card}>
-            {/* Joker Resmi */}
+           
             <View style={styles.imageContainer}>
               <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
             </View>

@@ -60,7 +60,7 @@ const Scoreboard = () => {
           <View>
             <Text style={styles.pageTitle}>SKOR TABLOSU</Text>
 
-            {/* ÜST KISIM: ÖZET ALANI */}
+          
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>Genel Performans Özeti</Text>
               

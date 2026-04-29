@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
 import FirstWelcomeScreen from './firstWelcomeScreen';
 import NameChange from './nameChange';
-// Storage sınıfını içeri aktarıyoruz
+
 import { UserDetailsStorage } from '@/storage/userDetailsStorage';
 
 const HomeScreen = () => {
