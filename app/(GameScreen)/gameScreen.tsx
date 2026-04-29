@@ -550,9 +550,20 @@ const GameScreen = () => {
                     <Text style={styles.timerText}>⏱ {formatTime(timeElapsed)}</Text>
                 </View>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 5, gap: 5 }}>
+
+            {/* --- DEBUG PANELİ BAŞLANGICI --- */}
+<View style={{ 
+                flexDirection: 'row', 
+                flexWrap: 'wrap', 
+                justifyContent: 'center', 
+                backgroundColor: 'rgba(0,0,0,0.9)', // Daha rahat okunması için biraz koyulaştırdım
+                padding: 10, 
+                gap: 5,
+                zIndex: 100,       // iOS'ta en üste alır
+                elevation: 100     // Android'de en üste alır
+            }}>
                 <Text style={{ color: '#FFF', fontWeight: 'bold', width: '100%', textAlign: 'center', marginBottom: 5 }}>
-                    DEBUG: Eklenecek Power-Up Seç
+                    DEBUG MENÜSÜ
                 </Text>
                 {POWERUP_LIST.map(p => (
                     <TouchableOpacity
@@ -570,7 +581,31 @@ const GameScreen = () => {
                         <Text style={{ color: '#FFF', fontSize: 12 }}>{p.logo} {p.id}</Text>
                     </TouchableOpacity>
                 ))}
+
+                <TouchableOpacity
+                    style={{
+                        backgroundColor: '#9C27B0',
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 5,
+                        borderWidth: 1,
+                        borderColor: '#FFF',
+                        marginTop: 5,
+                        width: '90%',
+                        alignItems: 'center'
+                    }}
+                    onPress={() => {
+                        const testGrid = grid.map(row => 
+                            row.map(cell => ({ ...cell, cellValue: 'Ğ' }))
+                        );
+                        setGrid(testGrid);
+                    }}
+                >
+                    <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold' }}>Tüm Gridi 'Ğ' Yap (Yenilenme Testi)</Text>
+                </TouchableOpacity>
             </View>
+            {/* --- DEBUG PANELİ BİTİŞİ --- */}
+
             <View style={styles.middleContainer}>
                 <GestureHandlerRootView style={styles.gridBoard}>
                     <PanGestureHandler onGestureEvent={onGestureEvent} onHandlerStateChange={onHandlerStateChange}>
@@ -692,8 +727,7 @@ const GameScreen = () => {
                 </View>
             </View>
         </SafeAreaView>
-    );
-};
+    );};
 
 export default GameScreen;
 
