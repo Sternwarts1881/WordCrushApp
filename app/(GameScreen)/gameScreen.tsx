@@ -385,6 +385,7 @@ const GameScreen = () => {
 
             if (selectedCells.length < 3) {
                 Alert.alert("Geçersiz", "En az 3 harf olmalı!");
+                setTurnAmount(prev => prev - 1);
                 setSelectedCells([]);
                 return;
             }
