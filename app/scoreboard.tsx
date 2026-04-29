@@ -12,18 +12,7 @@ const Scoreboard = () => {
     const loadHistory = async () => {
       const data = await ScoreboardStorage.getHistory();
       
-    
-      if (data.length === 0) {
-        const dummyData: GameRecord[] = [
-          { id: 12, date: "15.05.2026", gridSize: "8x8", score: 1240, wordsFound: 18, longestWord: "KELİMELER", duration: 360 },
-          { id: 11, date: "14.05.2026", gridSize: "6x6", score: 850, wordsFound: 12, longestWord: "DUMMY", duration: 240 },
-          { id: 10, date: "12.05.2026", gridSize: "10x10", score: 2100, wordsFound: 30, longestWord: "AMSTERDAM", duration: 600 },
-          { id: 9, date: "10.05.2026", gridSize: "8x8", score: 940, wordsFound: 15, longestWord: "EFESMALTENIYIBIRA", duration: 420 },
-        ];
-        setHistory(dummyData);
-      } else {
-        setHistory(data);
-      }
+      setHistory(data);
       setIsLoading(false);
     };
     loadHistory();
@@ -71,7 +60,7 @@ const Scoreboard = () => {
           <View>
             <Text style={styles.pageTitle}>SKOR TABLOSU</Text>
 
-            {/* ÜST KISIM: ÖZET ALANI */}
+          
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>Genel Performans Özeti</Text>
               

@@ -18,7 +18,7 @@ export const ScoreboardStorage = {
   saveGame: async (newGame: GameRecord) => {
     try {
       const currentHistory = await ScoreboardStorage.getHistory();
-      const updatedHistory = [newGame, ...currentHistory]; // En yeni en üste
+      const updatedHistory = [newGame, ...currentHistory]; 
       await AsyncStorage.setItem(SCOREBOARD_KEY, JSON.stringify(updatedHistory));
     } catch (e) {
       console.error("Oyun kaydedilemedi:", e);

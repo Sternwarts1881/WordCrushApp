@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
-import { globalStyles } from '@/styles/global';
-import { UserDetailsStorage } from '@/storage/userDetailsStorage';
 import { BoughtJokersStorage, JokerInventory } from '@/storage/boughtJokers';
+import { UserDetailsStorage } from '@/storage/userDetailsStorage';
+import { globalStyles } from '@/styles/global';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
 const JOKER_LIST = [
@@ -67,7 +67,7 @@ const Marketplace = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {JOKER_LIST.map((joker) => (
           <View key={joker.id} style={styles.card}>
-            {/* Joker Resmi */}
+           
             <View style={styles.imageContainer}>
               <Image source={joker.image} style={styles.jokerImage} resizeMode="contain" />
             </View>
@@ -103,7 +103,7 @@ const Marketplace = () => {
 
 export default Marketplace;
 
-// Market için özel yerel stiller
+
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',

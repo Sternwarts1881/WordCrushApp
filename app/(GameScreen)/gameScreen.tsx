@@ -145,7 +145,6 @@ const GameScreen = () => {
                     return;
                 }
 
-
                 const result = JokerLogic.executeJoker(activeJoker, grid, gridSize, swapFirstCell.row, swapFirstCell.col, row, col);
                 if (result.success) {
                     setGrid(result.newGrid);
@@ -342,13 +341,29 @@ const GameScreen = () => {
 
         if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return;
 
-        const isAlreadySelected = selectedCells.some(cell => cell.row === row && cell.col === col);
-        if (isAlreadySelected || selectedCells.length === 0) return;
+        const centerX = (col * cellSize) + (cellSize / 2);
+        const centerY = (row * cellSize) + (cellSize / 2);
 
-        const lastCell = selectedCells[selectedCells.length - 1];
-        if (Math.abs(lastCell.row - row) <= 1 && Math.abs(lastCell.col - col) <= 1) {
-            setSelectedCells(prev => [...prev, { row, col }]);
+        const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+
+        const hitRadius = cellSize * 0.45;
+
+        if (distanceToCenter > hitRadius) {
+            return;
         }
+        setSelectedCells(prev => {
+            if (prev.length === 0) return prev;
+
+            const isAlreadySelected = prev.some(cell => cell.row === row && cell.col === col);
+            if (isAlreadySelected) return prev;
+
+            const lastCell = prev[prev.length - 1];
+            if (Math.abs(lastCell.row - row) <= 1 && Math.abs(lastCell.col - col) <= 1) {
+                return [...prev, { row, col }];
+            }
+
+            return prev;
+        });
     };
 
     const onHandlerStateChange = (event: any) => {
@@ -382,6 +397,7 @@ const GameScreen = () => {
 
             if (selectedCells.length < 3) {
                 Alert.alert("Geçersiz", "En az 3 harf olmalı!");
+                setTurnAmount(prev => prev - 1);
                 setSelectedCells([]);
                 return;
             }
@@ -393,7 +409,7 @@ const GameScreen = () => {
                 setIsAnimating(true);
 
                 let totalPoint = 0;
-                let alertMessage = `Oluşturduğunuz kelime: ${word}`;
+                let alertMessage = ``; 
                 let cellsToPop = [...selectedCells];
 
                 if (word.length > 3) {
@@ -419,7 +435,12 @@ const GameScreen = () => {
                     const comboCheckResult = ComboChecker.checkCombo(word);
 
                     if (comboCheckResult.length > 1) {
-                        alertMessage += `\n${comboCheckResult.length}X KOMBO!\nKombo kelimeleri: ${comboCheckResult.join(', ')}`;
+                       
+                        const extraWords = comboCheckResult.filter(w => w !== word);
+                        const orderedComboWords = [word, ...extraWords];
+
+                        alertMessage = `Ana Kelime: ${word}\n\n ${comboCheckResult.length}X KOMBO! \nİç Kelimeler: ${orderedComboWords.join(', ')}`;
+                        
                         for (const subWord of comboCheckResult) {
                             totalPoint += PointCalculator.calculateScore(subWord);
                         }
@@ -429,6 +450,9 @@ const GameScreen = () => {
                 } else {
                     totalPoint = PointCalculator.calculateScore(word);
                 }
+                
+                
+                if (alertMessage) Alert.alert("Kelime Oluşturuldu!", alertMessage);
 
                 const initialCellsToPop = [...cellsToPop];
                 cellsToPop.forEach(cell => {
@@ -587,7 +611,7 @@ const GameScreen = () => {
                                             (swapFirstCell && swapFirstCell.row === rI && swapFirstCell.col === cI);
 
                                         const isEmpty = letter.cellValue === '';
-
+                                        
                                         const isFishTarget = fishTargets.some(t => t.row === rI && t.col === cI);
 
                                         return (
@@ -618,11 +642,11 @@ const GameScreen = () => {
                                                         ) : null}
 
                                                         {isFishTarget && (
-                                                            <Animated.Image
-                                                                source={require('@/assets/images/jokers/balik.png')}
+                                                            <Animated.Image 
+                                                                source={require('@/assets/images/jokers/balik.png')} 
                                                                 entering={ZoomIn.duration(200).springify()}
-                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }}
-                                                                resizeMode="contain"
+                                                                style={{ position: 'absolute', width: '80%', height: '80%', zIndex: 50 }} 
+                                                                resizeMode="contain" 
                                                             />
                                                         )}
                                                     </>
