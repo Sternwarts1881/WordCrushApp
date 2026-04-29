@@ -432,16 +432,14 @@ const GameScreen = () => {
                             totalPoint += PointCalculator.calculateScore(subWord);
                         }
                     } else {
-                        alertMessage = `Oluşturduğunuz kelime: ${word}`;
                         totalPoint = PointCalculator.calculateScore(word);
                     }
                 } else {
-                    alertMessage = `Oluşturduğunuz kelime: ${word}`;
                     totalPoint = PointCalculator.calculateScore(word);
                 }
                 
                 
-                Alert.alert("Kelime Oluşturuldu!", alertMessage);
+                if (alertMessage) Alert.alert("Kelime Oluşturuldu!", alertMessage);
 
                 const initialCellsToPop = [...cellsToPop];
                 cellsToPop.forEach(cell => {
