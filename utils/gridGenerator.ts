@@ -30,7 +30,7 @@ export const generateGrid = (size: number, currentGrid?: CellInformation[][]): C
         for (let col = 0; col < size; col++) {
             
             if (currentGrid && currentGrid[row] && currentGrid[row][col] && currentGrid[row][col].cellValue !== '') {
-                newRow.push(currentGrid[row][col]); // Eski harf ise ID'sini ve gücünü korur
+                newRow.push(currentGrid[row][col]); 
             } 
             else {
                 newRow.push({ 

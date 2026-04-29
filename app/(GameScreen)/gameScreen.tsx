@@ -440,7 +440,7 @@ const GameScreen = () => {
                     totalPoint = PointCalculator.calculateScore(word);
                 }
                 
-                // Mesajı Ekrana Bas
+                
                 Alert.alert("Kelime Oluşturuldu!", alertMessage);
 
                 const initialCellsToPop = [...cellsToPop];
