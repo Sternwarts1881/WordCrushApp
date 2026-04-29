@@ -16,7 +16,7 @@ const GridSizeQuery = ({ gridsize, onSelectSize }: Props) => {
                     Proje kurallarına göre küçük alan daha zordur.
                 </Text>
 
-                {/* Ana Menü Butonları */}
+                
                 <TouchableOpacity
                     style={[globalStyles.menuButton, { backgroundColor: '#4CAF50' }]} 
                     onPress={() => onSelectSize(10)}

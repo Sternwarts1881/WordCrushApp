@@ -1,5 +1,4 @@
-import { CellPosition } from "../app/(GameScreen)/gameScreen";
-import { CellInformation } from "../app/(GameScreen)/gameScreen";
+import { CellInformation, CellPosition } from "../app/(GameScreen)/gameScreen";
 
 export const CellRemover = {
     removeSelectedCells: function (selectedCells: CellPosition[], grid: CellInformation[][]) {
@@ -36,7 +35,7 @@ export const CellRemover = {
     handleCellRemoval: function (selectedCells: CellPosition[], grid: CellInformation[][], gridSize: number) {
         grid = this.removeSelectedCells(selectedCells, grid);
         grid = this.moveCellsDown(grid, gridSize);
-        //
+      
         const yeniGrid = grid.map(row => [...row]);
         return yeniGrid;
     }

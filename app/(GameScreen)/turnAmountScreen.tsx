@@ -13,7 +13,7 @@ const TurnAmountQuery = ({ turnamount, onSelectSize }: Props) => {
             <View style={globalStyles.menuContainer}>
                 <Text style={globalStyles.mainTitle}>Hamle Sayısı Seçiniz</Text>
 
-                {/* Ana Menü Butonları */}
+                
                 <TouchableOpacity
                     style={[globalStyles.menuButton, { backgroundColor: '#4CAF50' }]}
                     onPress={() => onSelectSize(25)}

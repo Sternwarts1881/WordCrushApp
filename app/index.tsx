@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import { globalStyles } from '@/styles/global';
-import FirstWelcomeScreen from './firstWelcomeScreen';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, SafeAreaView, Text, TouchableOpacity, View } from 'react-native';
+import FirstWelcomeScreen from './firstWelcomeScreen';
 import NameChange from './nameChange';
-// Storage sınıfını içeri aktarıyoruz
+
 import { UserDetailsStorage } from '@/storage/userDetailsStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,9 +15,9 @@ const HomeScreen = () => {
   const [username, setUsername] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Yüklenme durumu
+  const [isLoading, setIsLoading] = useState(true); 
 
-  // 1. ADIM: Uygulama açıldığında hafızayı kontrol et
+
   useEffect(() => {
     const checkStorage = async () => {
       const savedName = await UserDetailsStorage.getUsername();
@@ -28,11 +30,11 @@ const HomeScreen = () => {
     checkStorage();
   }, []);
 
-  // 2. ADIM: Giriş yaparken ismi kaydet
+
   const handleLogin = async () => {
     if (username.trim().length > 0) {
-      await UserDetailsStorage.saveUsername(username); // Hafızaya yaz
-      await UserDetailsStorage.initializeGold(); // Başlangıç altınını tanımla
+      await UserDetailsStorage.saveUsername(username); 
+      await UserDetailsStorage.initializeGold(); 
       setIsLoggedIn(true);
     }
   };
@@ -49,7 +51,7 @@ const HomeScreen = () => {
   // 3. ADIM: İsim değiştirirken hafızayı güncelle
   const handleSaveName = async () => {
     if (username.trim().length > 0) {
-      await UserDetailsStorage.saveUsername(username); // Yeni ismi hafızaya yaz
+      await UserDetailsStorage.saveUsername(username); 
       setIsEditingName(false);
     }
   };
