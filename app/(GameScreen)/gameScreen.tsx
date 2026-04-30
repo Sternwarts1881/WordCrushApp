@@ -56,12 +56,12 @@ const POWERUP_LIST = [
 ];
 
 const JOKER_DESCRIPTIONS: Record<string, { title: string, desc: string }> = {
-    'balik': { title: 'Joker: Balık', desc: 'Seçtiğiniz bir harfi ve rastgele 2 komşusunu yutarak yok eder. Patlayan harfler puan kazandırır!' },
-    'tekerlek': { title: 'Joker: Tekerlek', desc: 'Seçtiğiniz bir satırı tamamen yeniler ve patlayan harflerin puanını size kazandırır.' },
-    'lolipop': { title: 'Joker: Lolipop', desc: 'İstediğiniz bir harfi patlatarak puanını hanenize yazdırır.' },
+    'balik': { title: 'Joker: Balık', desc: 'Gridde rastgele olarak harfleri yok etmektedir. Rastgele yok olan harflerin üzerindeki harfler aşağıya düşmektedir.' },
+    'tekerlek': { title: 'Joker: Tekerlek', desc: 'Gridde seçilen harfin bulunduğu satır ve sütundaki tüm harfler yok olmaktadır.' },
+    'lolipop': { title: 'Joker: Lolipop', desc: 'Gridde seçilen bir harfi yok etmek için kullanılmaktadır. Bu harf yok olduğunda yukarısındaki kelimeler aşağı düşmektedir.' },
     'serbestDegistirme': { title: 'Joker: Serbest Değiştirme', desc: 'Sadece birbirine temas eden iki harfin yerini hamle harcamadan değiştirmenizi sağlar.' },
     'harfKaristirma': { title: 'Joker: Harf Karıştırma', desc: 'Tüm harflerin yerlerini rastgele karıştırarak yeni fırsatlar yaratır.' },
-    'partiGuclendiricisi': { title: 'Joker: Parti Güçlendiricisi', desc: 'Rastgele 5 harfi patlatarak büyük bir puan ve alan avantajı sağlar.' }
+    'partiGuclendiricisi': { title: 'Joker: Parti Güçlendiricisi', desc: 'Bu özellik seçildiğinde gridde bulunan tüm harfler yok edilir ve tekrardan rastgele bir şekilde harfler yukarıdan aşağıya düşmektedir.' }
 };
 
 const GameScreen = () => {
@@ -459,7 +459,7 @@ const GameScreen = () => {
                     const existingPowerUp = grid[cell.row][cell.col].powerUp;
 
                     if (existingPowerUp) {
-                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, grid, gridSize, cellsToPop, cell.row, cell.col);
+                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, gridSize, cellsToPop, cell.row, cell.col);
 
                         if (powerResult && powerResult.success) {
                             cellsToPop = powerResult.selectedCells;
