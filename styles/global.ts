@@ -1,7 +1,7 @@
 import {StyleSheet} from 'react-native'
 
 export const colors = {
-  background: '#F5F5DC', // Arka plan için açık bir bej tonu
+  background: '#F5F5DC', 
   textPrimary: '#333',
   textSecondary: '#555',
   surface: '#FFFFFF',

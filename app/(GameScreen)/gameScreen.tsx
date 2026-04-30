@@ -447,7 +447,7 @@ const GameScreen = () => {
                     const existingPowerUp = grid[cell.row][cell.col].powerUp;
 
                     if (existingPowerUp) {
-                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, grid, gridSize, cellsToPop, cell.row, cell.col);
+                        const powerResult = PowerUpLogic.executePowerUp(existingPowerUp, gridSize, cellsToPop, cell.row, cell.col);
 
                         if (powerResult && powerResult.success) {
                             cellsToPop = powerResult.selectedCells;

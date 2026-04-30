@@ -1,13 +1,8 @@
 import { CellInformation, CellPosition } from "@/app/(GameScreen)/gameScreen";
-import { generateGrid } from "./gridGenerator";
-import { PointCalculator } from "./pointCalculator";
-import { CellRemover } from "./popCells";
 
 export const PowerUpLogic = {
-    executePowerUp: function (powerUpId: string, grid: CellInformation[][], gridSize: number, selectedCells: CellPosition[], row?: number, col?: number) {
-        let clonedGrid = grid.map(r => [...r]);
+    executePowerUp: function (powerUpId: string, gridSize: number, selectedCells: CellPosition[], row?: number, col?: number) {
         let cellsToRemove: CellPosition[] = [];
-        let earnedScore = 0;
 
         switch (powerUpId) {
             case 'sutunSilme':
